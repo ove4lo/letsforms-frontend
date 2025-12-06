@@ -13,18 +13,20 @@ interface Props {
 
 export function StatsCard({ title, value, helperText, icon, loading, className }: Props) {
   return (
-    <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className={`h-full ${className}`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        {icon}
+        <div className="h-5 w-5">{icon}</div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">
-          {loading ? <Skeleton className="h-8 w-24" /> : value}
+      <CardContent className="pb-6">
+        <div className="text-3xl font-bold tabular-nums">
+          {loading ? <Skeleton className="h-9 w-32" /> : value}
         </div>
-        <p className="text-xs text-muted-foreground pt-1">{helperText}</p>
+        <p className="text-xs text-muted-foreground mt-2">
+          {helperText}
+        </p>
       </CardContent>
     </Card>
   );
