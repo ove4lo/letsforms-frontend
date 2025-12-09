@@ -28,7 +28,7 @@ import { BsFileEarmarkPlus } from "react-icons/bs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { CreateFormSchema, CreateFormType } from "@/schemas/form";
+import { CreateFormSchema, CreateFormType } from "../schemas/form";
 import { createForm } from "@/lib/form";
 
 export function CreateFormBtn() {
@@ -54,10 +54,10 @@ export function CreateFormBtn() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="group border border-dashed border-primary/20 h-[190px] w-full flex flex-col items-center justify-center hover:border-primary hover:cursor-pointer hover:bg-primary/5 transition-all"
+          className="rounded-xl border-2 border-dashed border-primary/20 h-full min-h-64 w-full flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 hover:shadow-lg transition-all group"
         >
-          <BsFileEarmarkPlus className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors" />
-          <p className="mt-4 text-lg font-semibold text-muted-foreground group-hover:text-primary">
+          <BsFileEarmarkPlus className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors mb-4" />
+          <p className="text-lg font-semibold text-muted-foreground group-hover:text-primary">
             Создать новую форму
           </p>
         </Button>
