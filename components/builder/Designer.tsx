@@ -19,12 +19,14 @@ import {
 
 import { DesignerSidebar } from "./DesignerSidebar";
 import { DesignerElementWrapper } from "./DesignerElementWrapper";
+import { PropertiesPanel } from "./PropertiesPanel";
 import { FormElements } from "./elements/FormElements";
 import { FormElementInstance } from "./types";
 import { nanoid } from "nanoid";
 
 export function Designer({ initialElements = [] }: { initialElements: FormElementInstance[] }) {
   const [elements, setElements] = useState<FormElementInstance[]>(initialElements);
+  const [selectedElement, setSelectedElement] = useState<FormElementInstance | null>(null);
   const [draggedType, setDraggedType] = useState<keyof typeof FormElements | null>(null);
 
   const sensors = useSensors(
@@ -100,6 +102,14 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
 
   const removeElement = (id: string) => {
     setElements((prev) => prev.filter((el) => el.id !== id));
+    if (selectedElement?.id === id) setSelectedElement(null);
+  };
+
+  const updateElement = (updated: FormElementInstance) => {
+    setElements((prev) =>
+      prev.map((el) => (el.id === updated.id ? updated : el))
+    );
+    setSelectedElement(updated);
   };
 
   return (
@@ -109,7 +119,7 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex w-full h-full">
+      <div className="flex w-full h-full" suppressHydrationWarning={true}>
         {/* Рабочая зона */}
         <div className="flex-1 p-8 overflow-auto">
           <div className="w-full">
@@ -131,6 +141,8 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
                         key={element.id}
                         element={element}
                         onRemove={removeElement}
+                        onSelect={() => setSelectedElement(element)}
+                        isSelected={selectedElement?.id === element.id}
                       />
                     ))}
                   </div>
@@ -141,6 +153,22 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
         </div>
 
         <DesignerSidebar />
+
+        {/* Правая панель свойств */}
+        {selectedElement && (
+          <div className="fixed inset-0 z-50" onClick={() => setSelectedElement(null)}>
+            <div
+              className="absolute right-0 top-0 h-full w-96 bg-card border-l shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <PropertiesPanel
+                element={selectedElement}
+                updateElement={updateElement}
+                closePanel={() => setSelectedElement(null)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <DragOverlay>

@@ -4,13 +4,13 @@ export type ElementsType =
   | "SelectField"
   | "CheckboxField"
   | "DateField"
+  | "NumberField"
   | "TitleField"
   | "SubTitleField"
   | "ParagraphField"
   | "SeparatorField"
   | "SpacerField"
-  | "NumberField";
-
+  | "RadioField";   
 export type FormElementInstance = {
   id: string;
   type: ElementsType;
@@ -19,4 +19,9 @@ export type FormElementInstance = {
 
 export type DesignerElementProps = {
   elementInstance: FormElementInstance;
+};
+
+export type PropertiesComponentProps = {
+  elementInstance: FormElementInstance;
+  updateElement: (updated: FormElementInstance) => void;
 };
