@@ -1,7 +1,11 @@
-import { Designer } from "@/components/builder/Designer";
-import { FormElementInstance } from "@/components/builder/types";
+'use client';
 
-const mockElements: FormElementInstance[] = [
+import { Designer } from "@/components/builder/Designer";
+import { PreviewDialogBtn } from "@/components/builder/PreviewDialogBtn";
+import { FormElementInstance } from "@/components/builder/types";
+import { useState } from "react";
+
+const initialMockElements: FormElementInstance[] = [
   {
     id: "field-1",
     type: "TextField",
@@ -23,6 +27,9 @@ const mockElements: FormElementInstance[] = [
 ];
 
 export default function BuilderPage({ params }: { params: { id: string } }) {
+  const [elements, setElements] = useState<FormElementInstance[]>(initialMockElements);
+  const [selectedElement, setSelectedElement] = useState<FormElementInstance | null>(null);
+
   return (
     <div className="h-screen w-screen flex flex-col">
       <header className="border-b bg-background px-6 py-4 flex items-center justify-between">
@@ -30,16 +37,20 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
           Редактирование: Моя первая форма
         </h1>
         <div className="flex gap-3">
-          <button className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition">
-            Превью
-          </button>
+          <PreviewDialogBtn elements={elements} />
           <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
             Сохранить
           </button>
         </div>
       </header>
+
       <div className="flex-1 w-full h-full overflow-hidden">
-        <Designer initialElements={mockElements} />
+        <Designer
+          elements={elements}
+          onElementsChange={setElements}
+          selectedElement={selectedElement}
+          onSelectedElementChange={setSelectedElement}
+        />
       </div>
     </div>
   );

@@ -24,9 +24,17 @@ import { FormElements } from "./elements/FormElements";
 import { FormElementInstance } from "./types";
 import { nanoid } from "nanoid";
 
-export function Designer({ initialElements = [] }: { initialElements: FormElementInstance[] }) {
-  const [elements, setElements] = useState<FormElementInstance[]>(initialElements);
-  const [selectedElement, setSelectedElement] = useState<FormElementInstance | null>(null);
+export function Designer({
+  elements,
+  onElementsChange,
+  selectedElement,
+  onSelectedElementChange,
+}: {
+  elements: FormElementInstance[];
+  onElementsChange: (elements: FormElementInstance[]) => void;
+  selectedElement: FormElementInstance | null;
+  onSelectedElementChange: (el: FormElementInstance | null) => void;
+}) {
   const [draggedType, setDraggedType] = useState<keyof typeof FormElements | null>(null);
 
   const sensors = useSensors(
@@ -60,7 +68,7 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
       };
 
       if (isDroppingOverDesignerArea) {
-        setElements((prev) => [...prev, newElement]);
+        onElementsChange([...elements, newElement]);
         return;
       }
 
@@ -69,17 +77,16 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
         const overIndex = elements.findIndex((el) => el.id === overId);
         if (overIndex !== -1) {
           const newIndex = isDroppingOverDesignerElementTopHalf ? overIndex : overIndex + 1;
-          setElements((prev) => {
-            const newElements = [...prev];
-            newElements.splice(newIndex, 0, newElement);
-            return newElements;
-          });
+          const newElements = [...elements];
+          newElements.splice(newIndex, 0, newElement);
+          onElementsChange(newElements);
         }
         return;
       }
     }
 
-    // Перемещение существующих
+
+    // Перемещение существующих элементов
     const activeId = active.id as string;
     const overId = over.id as string;
 
@@ -93,23 +100,25 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
       if (isDroppingOverDesignerElementBottomHalf) {
         newIndex = overIndex + 1;
       }
-
-      setElements((prev) => arrayMove(prev, activeIndex, newIndex));
+      const newElements = arrayMove(elements, activeIndex, newIndex);
+      onElementsChange(newElements);
     }
 
     setDraggedType(null);
   };
 
   const removeElement = (id: string) => {
-    setElements((prev) => prev.filter((el) => el.id !== id));
-    if (selectedElement?.id === id) setSelectedElement(null);
+    const newElements = elements.filter((el) => el.id !== id);
+    onElementsChange(newElements);
+    if (selectedElement?.id === id) {
+      onSelectedElementChange(null);
+    }
   };
 
   const updateElement = (updated: FormElementInstance) => {
-    setElements((prev) =>
-      prev.map((el) => (el.id === updated.id ? updated : el))
-    );
-    setSelectedElement(updated);
+    const newElements = elements.map((el) => (el.id === updated.id ? updated : el));
+    onElementsChange(newElements);
+    onSelectedElementChange(updated);
   };
 
   return (
@@ -141,7 +150,7 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
                         key={element.id}
                         element={element}
                         onRemove={removeElement}
-                        onSelect={() => setSelectedElement(element)}
+                        onSelect={() => onSelectedElementChange(element)}
                         isSelected={selectedElement?.id === element.id}
                       />
                     ))}
@@ -156,7 +165,7 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
 
         {/* Правая панель свойств */}
         {selectedElement && (
-          <div className="fixed inset-0 z-50" onClick={() => setSelectedElement(null)}>
+          <div className="fixed inset-0 z-50" onClick={() => onSelectedElementChange(null)}>
             <div
               className="absolute right-0 top-0 h-full w-96 bg-card border-l shadow-2xl"
               onClick={(e) => e.stopPropagation()}
@@ -164,7 +173,7 @@ export function Designer({ initialElements = [] }: { initialElements: FormElemen
               <PropertiesPanel
                 element={selectedElement}
                 updateElement={updateElement}
-                closePanel={() => setSelectedElement(null)}
+                closePanel={() => onSelectedElementChange(null)}
               />
             </div>
           </div>
