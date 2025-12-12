@@ -23,6 +23,39 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { FormElements } from "./elements/FormElements";
 import { FormElementInstance } from "./types";
 import { nanoid } from "nanoid";
+import { useDroppable } from '@dnd-kit/core';
+
+function DesignerDropArea({
+  children,
+  isEmpty,
+}: {
+  children: React.ReactNode;
+  isEmpty: boolean;
+}) {
+  const { setNodeRef } = useDroppable({
+    id: 'designer-drop-area',
+    data: {
+      isDesignerDropArea: true,
+    },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="min-h-screen rounded-xl bg-background/50 p-12 border-2 border-dashed border-muted-foreground/20"
+    >
+      {isEmpty ? (
+        <div className="h-96 flex items-center justify-center text-center">
+          <p className="text-xl text-muted-foreground">
+            Перетащите элементы из правой панели
+          </p>
+        </div>
+      ) : (
+        children
+      )}
+    </div>
+  );
+}
 
 export function Designer({
   elements,
@@ -132,32 +165,21 @@ export function Designer({
         {/* Рабочая зона */}
         <div className="flex-1 p-8 overflow-auto">
           <div className="w-full">
-            <div
-              data-is-designer-drop-area="true"
-              className="min-h-screen rounded-xl bg-background/50 p-12 border-2 border-dashed border-muted-foreground/20"
-            >
-              {elements.length === 0 ? (
-                <div className="h-96 flex items-center justify-center text-center">
-                  <p className="text-xl text-muted-foreground">
-                    Перетащите элементы из правой панели
-                  </p>
+            <DesignerDropArea isEmpty={elements.length === 0}>
+              <SortableContext items={elements.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-6">
+                  {elements.map((element) => (
+                    <DesignerElementWrapper
+                      key={element.id}
+                      element={element}
+                      onRemove={removeElement}
+                      onSelect={() => onSelectedElementChange(element)}
+                      isSelected={selectedElement?.id === element.id}
+                    />
+                  ))}
                 </div>
-              ) : (
-                <SortableContext items={elements.map((e) => e.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-6">
-                    {elements.map((element) => (
-                      <DesignerElementWrapper
-                        key={element.id}
-                        element={element}
-                        onRemove={removeElement}
-                        onSelect={() => onSelectedElementChange(element)}
-                        isSelected={selectedElement?.id === element.id}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              )}
-            </div>
+              </SortableContext>
+            </DesignerDropArea>
           </div>
         </div>
 
