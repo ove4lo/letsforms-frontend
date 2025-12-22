@@ -1,4 +1,3 @@
-// app/(dashboard)/builder/[id]/page.tsx
 "use client";
 
 import { use } from "react";
@@ -8,7 +7,7 @@ import { FormElementInstance } from "@/components/builder/types";
 import { useState, useEffect } from "react";
 
 export default function BuilderPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params); // ← правильно читаем id
+  const { id } = use(params); 
 
   const [formTitle, setFormTitle] = useState("Новая форма");
   const [elements, setElements] = useState<FormElementInstance[]>([]);
@@ -24,7 +23,7 @@ export default function BuilderPage({ params }: { params: Promise<{ id: string }
         const restoredElements = data.elements.map((el: any) => ({
           id: el.id,
           type: el.type,
-          extraAttributes: { ...el }, // ← все настройки сохранены!
+          extraAttributes: { ...el }, 
         }));
         setElements(restoredElements);
       } catch (e) {

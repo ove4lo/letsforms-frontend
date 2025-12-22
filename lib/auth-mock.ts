@@ -1,5 +1,5 @@
 export const getMockUser = () => ({
-  id: "1024823538",                                 
+  telegram_id: "123456789",                                 
   username: "ove4lo",
   first_name: "Алина",
   last_name: "Михайлова",

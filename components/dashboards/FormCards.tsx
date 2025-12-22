@@ -1,20 +1,38 @@
-import { FormCard } from "./FormCard";
-import { getMyForms } from "@/lib/form";
+"use client";
 
-export async function FormCards() {
-  const forms = await getMyForms(); 
+import { FormCard } from "./FormCard";
+
+type Props = {
+  initialForms: {
+    id: number | string;
+    title: string;
+    description: string | null;
+    created_at: string;
+    status: string;
+  }[];
+};
+
+export function FormCards({ initialForms }: Props) {
+  if (initialForms.length === 0) {
+    return (
+      <div className="col-span-full text-center text-muted-foreground py-12">
+        У вас пока нет форм. Создайте первую!
+      </div>
+    );
+  }
 
   return (
     <>
-      {forms.map((form) => (
+      {initialForms.map((form) => (
         <FormCard
           key={form.id}
           id={form.id}
           title={form.title}
           description={form.description}
-          visits={1247}
-          submissions={892}
+          visits={0}
+          submissions={0}
           createdAt={form.created_at}
+          status={form.status}
         />
       ))}
     </>

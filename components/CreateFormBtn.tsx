@@ -50,79 +50,81 @@ export function CreateFormBtn() {
   }
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="rounded-xl border-2 border-dashed border-primary/20 h-full min-h-64 w-full flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 hover:shadow-lg transition-all group"
-        >
-          <BsFileEarmarkPlus className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors mb-4" />
-          <p className="text-lg font-semibold text-muted-foreground group-hover:text-primary">
-            Создать новую форму
-          </p>
-        </Button>
-      </DialogTrigger>
+    <div suppressHydrationWarning={true}>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="rounded-xl border-2 border-dashed border-primary/20 h-full min-h-64 w-full flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 hover:shadow-lg transition-all group"
+          >
+            <BsFileEarmarkPlus className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors mb-4" />
+            <p className="text-lg font-semibold text-muted-foreground group-hover:text-primary">
+              Создать новую форму
+            </p>
+          </Button>
+        </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Создать форму</DialogTitle>
-          <DialogDescription>
-            Создайте новую форму, чтобы начать собирать ответы
-          </DialogDescription>
-        </DialogHeader>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Создать форму</DialogTitle>
+            <DialogDescription>
+              Создайте новую форму, чтобы начать собирать ответы
+            </DialogDescription>
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Название *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Например: Опрос удовлетворённости" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Описание</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={4}
-                      placeholder="Необязательно. Краткое описание формы..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter className="mt-6">
-              <Button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className="w-full"
-              >
-                {form.formState.isSubmitting ? (
-                  <>
-                    <ImSpinner2 className="mr-2 h-4 w-4 animate-spin" />
-                    Создаём...
-                  </>
-                ) : (
-                  "Создать форму"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Название *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Например: Опрос удовлетворённости" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Описание</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={4}
+                        placeholder="Необязательно. Краткое описание формы..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="mt-6">
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className="w-full"
+                >
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <ImSpinner2 className="mr-2 h-4 w-4 animate-spin" />
+                      Создаём...
+                    </>
+                  ) : (
+                    "Создать форму"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
