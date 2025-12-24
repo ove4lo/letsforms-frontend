@@ -31,7 +31,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateFormSchema, CreateFormType } from "../schemas/form";
 import { createForm } from "@/lib/form";
 
-export function CreateFormBtn() {
+interface CreateFormBtnProps {
+  onFormCreated?: () => void; 
+}
+
+export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
+  
   const form = useForm<CreateFormType>({
     resolver: zodResolver(CreateFormSchema),
     defaultValues: {
@@ -42,10 +47,19 @@ export function CreateFormBtn() {
 
   async function onSubmit(values: CreateFormType) {
     try {
-      await createForm(values);
+      console.log("Создаём форму:", values);
+      const result = await createForm(values);
+      console.log("Форма создана:", result);
       toast.success("Форма успешно создана!");
       form.reset();
-    } catch (error) {
+
+      if (onFormCreated) {
+        onFormCreated();
+      }
+    } catch (error: any) {
+      console.error("Ошибка создания формы:", error);
+      toast.error("Не удалось создать форму. Попробуйте позже.");
+      form.setError("root", { message: error.message || "Ошибка сервера" });
     }
   }
 
@@ -105,6 +119,7 @@ export function CreateFormBtn() {
                   </FormItem>
                 )}
               />
+
               <DialogFooter className="mt-6">
                 <Button
                   type="submit"

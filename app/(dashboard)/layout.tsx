@@ -9,35 +9,40 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const tgUserStr = localStorage.getItem("tg_user");
-    if (tgUserStr) {
-      try {
-        const parsed = JSON.parse(tgUserStr);
-        setUser(parsed);
-      } catch (e) {
-        console.error("Ошибка парсинга", e);
+    const checkUser = () => {
+      const tgUserStr = localStorage.getItem("tg_user");
+      if (tgUserStr) {
+        try {
+          const parsedUser = JSON.parse(tgUserStr);
+          setUser(parsedUser);
+          setLoading(false);
+        } catch (e) {
+          console.error("Ошибка парсинга tg_user", e);
+          localStorage.removeItem("tg_user");
+          router.replace("/auth");
+          setLoading(false);
+        }
+      } else {
+        router.replace("/auth");
+        setLoading(false);
       }
-    }
+    };
 
-    if (!tgUserStr) {
-      router.replace("/auth");
-    }
-
-    setLoading(false);
+    checkUser();
   }, [router]);
 
-  if (loading) {
-    return <p>Загрузка...</p>;
-  }
-
   if (!user) {
-    return null;
+    return null; 
   }
 
   const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.username?.[0]?.toUpperCase() || "?";
@@ -52,27 +57,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.photo_url} alt={user.username} />
+                  <AvatarImage src={user.photo_url || user.telegram_photo_url} alt={user.username} />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
-              <DropdownMenuLabel>
+              <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-medium leading-none">
                     {user.first_name || user.username}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    @{user.username}
+                  <p className="text-xs leading-none text-muted-foreground">
+                    @{user.username || user.telegram_username}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => {
-                localStorage.clear();
-                window.location.href = "/auth";
-              }}>
+              <DropdownMenuItem
+                className="cursor-pointer text-red-600 focus:text-red-600"
+                onSelect={() => {
+                  localStorage.clear();
+                  window.location.href = "/auth";
+                }}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Выйти
               </DropdownMenuItem>

@@ -7,11 +7,11 @@ import { useDraggable } from "@dnd-kit/core";
 type ElementType = keyof typeof FormElements;  
 
 const layoutElements = [
-  { type: "TitleField" as const, label: "Заголовок" },
-  { type: "SubTitleField" as const, label: "Подзаголовок" },
+  // { type: "TitleField" as const, label: "Заголовок" },
+  // { type: "SubTitleField" as const, label: "Подзаголовок" },
   { type: "ParagraphField" as const, label: "Текст" },
-  { type: "SeparatorField" as const, label: "Разделитель" },
-  { type: "SpacerField" as const, label: "Отступ" },
+  // { type: "SeparatorField" as const, label: "Разделитель" },
+  // { type: "SpacerField" as const, label: "Отступ" },
 ];
 
 const formElements = [

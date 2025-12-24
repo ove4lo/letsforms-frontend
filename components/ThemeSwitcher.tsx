@@ -14,7 +14,7 @@ function ThemeSwitcher() {
         setMounted(true);
     }, []);
 
-    if (!mounted) return null; // avoid rehydration errors
+    if (!mounted) return null; 
     return (
         <Tabs defaultValue={theme}>
             <TabsList className="border">
@@ -29,12 +29,6 @@ function ThemeSwitcher() {
                     onClick={() => setTheme("dark")}
                 >
                     <MoonIcon className="h-[1.2rem] w-[1.2rem] rotate-90 transition-all dark:rotate-0" />
-                </TabsTrigger>
-                <TabsTrigger
-                    value="system"
-                    onClick={() => setTheme("system")}
-                >
-                    <DesktopIcon className="h-[1.2rem] w-[1.2rem]" />
                 </TabsTrigger>
             </TabsList>
         </Tabs>

@@ -43,7 +43,7 @@ export function DateFieldProperties({ elementInstance, updateElement }: Props) {
         />
       </div>
 
-      {/* Значение по умолчанию (календарь) */}
+      {/* Значение по умолчанию (календарь)
       <div>
         <Label className="text-base">Значение по умолчанию</Label>
         <Popover>
@@ -67,7 +67,7 @@ export function DateFieldProperties({ elementInstance, updateElement }: Props) {
             />
           </PopoverContent>
         </Popover>
-      </div>
+      </div> */}
 
       {/* Обязательное поле */}
       <div className="flex items-center justify-between py-4">

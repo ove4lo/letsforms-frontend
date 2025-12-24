@@ -2,12 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getFormByHash } from "@/lib/form";
+import { getFormByHash, updateFormStatus } from "@/lib/form";
 import { FormElements } from "@/components/builder/elements/FormElements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Link2, Trash2 } from "lucide-react";
+import { LoadingCat } from "@/components/LoadingCat";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Check, ChevronsUpDown } from "lucide-react";
+
+// Конфиг статусов
+const statusConfig = {
+  draft: { label: "Черновик", variant: "secondary" as const },
+  active: { label: "Активна", variant: "default" as const },
+  paused: { label: "Приостановлена", variant: "secondary" as const },
+  archived: { label: "Архивирована", variant: "outline" as const },
+};
 
 export default function FormPage() {
   const params = useParams();
@@ -16,6 +32,7 @@ export default function FormPage() {
 
   const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     getFormByHash(hash).then((data) => {
@@ -26,8 +43,8 @@ export default function FormPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-xl text-muted-foreground">Загрузка формы...</p>
+      <div className="min-h-screen w-full bg-background">
+        <LoadingCat message="Загрузка формы..." subMessage="Пожалуйста, подождите" />
       </div>
     );
   }
@@ -39,6 +56,28 @@ export default function FormPage() {
       </div>
     );
   }
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === formData.status) return;
+    if (isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      await updateFormStatus(hash, newStatus);
+      // Обновляем локальное состояние
+      setFormData((prev: any) => ({ ...prev, status: newStatus }));
+    } catch (error) {
+      console.error("Ошибка обновления статуса:", error);
+      alert("Не удалось обновить статус. Попробуйте позже.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Получаем текущий статус
+  const currentStatus = formData.status || "draft";
+  const currentStatusInfo = statusConfig[currentStatus as keyof typeof statusConfig] || statusConfig.draft;
+
 
   // Данные из бэкенда
   const visits = formData.visit_count || 0;
@@ -57,10 +96,13 @@ export default function FormPage() {
         const parsed = JSON.parse(options);
         return Array.isArray(parsed) ? parsed : undefined;
       } catch {
-        return options
-          .split(",")
-          .map((s: string) => s.trim())
-          .filter((s: string) => s.length > 0);
+        if (options.includes(",")) {
+          return options
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0);
+        }
+        return undefined;
       }
     }
 
@@ -69,12 +111,68 @@ export default function FormPage() {
     return undefined;
   };
 
+  // Функция для извлечения специфичных атрибутов по типу
+  const getExtraAttributes = (question: any) => {
+    const baseAttributes = {
+      label: question.text || "Без названия",
+      required: question.is_required || false,
+      placeholder: question.placeholder || undefined,
+    };
+
+    // Для типов с options
+    if (question.options && ["single_choice", "multiple_choice", "select"].includes(question.type)) {
+      return {
+        ...baseAttributes,
+        options: parseOptions(question.options),
+      };
+    }
+
+    // Для scale - парсим диапазон
+    if (question.type === "scale" && question.options) {
+      try {
+        const options = parseOptions(question.options);
+        if (options && options.length === 2) {
+          return {
+            ...baseAttributes,
+            min: parseInt(options[0]) || 1,
+            max: parseInt(options[1]) || 10,
+          };
+        }
+      } catch {
+        // Если парсинг не удался, используем дефолтные значения
+        return {
+          ...baseAttributes,
+          min: 1,
+          max: 10,
+        };
+      }
+    }
+
+    // Для number - проверяем есть ли options для min/max
+    if (question.type === "number" && question.options) {
+      try {
+        const options = parseOptions(question.options);
+        if (options && options.length === 2) {
+          return {
+            ...baseAttributes,
+            min: parseInt(options[0]) || undefined,
+            max: parseInt(options[1]) || undefined,
+          };
+        }
+      } catch {
+      }
+    }
+
+    return baseAttributes;
+  };
+
   // Маппинг типов бэкенда 
   const typeMap: Record<string, keyof typeof FormElements> = {
     text: "TextField",
     text_area: "TextareaField",
     single_choice: "RadioField",
     multiple_choice: "CheckboxField",
+    select: "SelectField",
     number: "NumberField",
     scale: "ScaleField",
     date: "DateField",
@@ -88,10 +186,33 @@ export default function FormPage() {
         <div className="space-y-8">
           <div>
             <div className="flex items-center gap-4 mb-4">
-              <Badge variant={formData.status === "active" ? "default" : "secondary"}>
-                {formData.status === "active" ? "Активна" : "Черновик"}
-              </Badge>
+              {/* Выпадающий список статуса */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Badge
+                    variant={currentStatusInfo.variant}
+                    className="text-base px-3 py-1 cursor-pointer hover:opacity-90 transition-opacity flex items-center gap-1"
+                  >
+                    {currentStatusInfo.label}
+                    <ChevronsUpDown className="h-3 w-3" />
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {Object.entries(statusConfig).map(([key, config]) => (
+                    <DropdownMenuItem
+                      key={key}
+                      onSelect={() => handleStatusChange(key)}
+                      disabled={isUpdating || key === currentStatus}
+                      className="flex items-center gap-2"
+                    >
+                      {key === currentStatus && <Check className="h-4 w-4" />}
+                      {config.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
               {formData.title}
             </h1>
@@ -181,26 +302,50 @@ export default function FormPage() {
                       </p>
                     </div>
                   ) : (
-                    questions.map((element: any) => {
-                      const clientType = typeMap[element.type] || "TextField";
-                      const FormComponent = FormElements[clientType].formComponent;
+                    questions
+                      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+                      .map((question: any) => {
+                        const clientType = typeMap[question.type] || "TextField";
+                        if (question.type === "info") {
+                          return (
+                            <div key={question.id} className="space-y-2">
+                              <div className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                {question.text || "Информационный блок"}
+                              </div>
+                              {question.placeholder && (
+                                <p className="text-muted-foreground text-sm">
+                                  {question.placeholder}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
 
-                      const elementInstance = {
-                        id: element.id.toString(),
-                        type: clientType as keyof typeof FormElements,
-                        extraAttributes: {
-                          label: element.text || "Без названия",
-                          required: element.is_required || false,
-                          options: parseOptions(element.options),
-                        },
-                      };
+                        const FormComponent = FormElements[clientType]?.formComponent;
 
-                      return (
-                        <div key={element.id}>
-                          <FormComponent elementInstance={elementInstance} />
-                        </div>
-                      );
-                    })
+                        if (!FormComponent) {
+                          return (
+                            <div key={question.id} className="p-4 border rounded bg-gray-100 dark:bg-gray-800">
+                              <p className="font-medium">{question.text}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Тип поля не поддерживается: {question.type}
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        const elementInstance = {
+                          id: question.id.toString(),
+                          type: clientType as keyof typeof FormElements,
+                          extraAttributes: getExtraAttributes(question),
+                        };
+
+                        return (
+                          <div key={question.id} className="space-y-2">
+                            <FormComponent elementInstance={elementInstance} />
+                          </div>
+                        );
+                      })
                   )}
                 </div>
               </div>
