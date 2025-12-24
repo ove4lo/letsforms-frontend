@@ -7,7 +7,19 @@ import { getMyForms } from "@/lib/form";
 import { FormCardSkeleton } from "@/components/dashboards/FormCardSkeleton";
 
 export default async function DashboardPage() {
-  const forms = await getMyForms(); 
+  const { results: formsData, user_statistics } = await getMyForms();
+
+  // Маппим формы для карточек
+  const forms = formsData.map((form: any) => ({
+    hash: form.hash,
+    title: form.title,
+    description: form.description,
+    created_at: form.created_at,
+    status: form.status,
+    visit_count: form.visit_count || 0,
+    response_count: form.response_count || 0,
+    conversion_rate: form.conversion_rate || 0,
+  }));
 
   return (
     <div className="container mx-auto p-4 pt-8 max-w-7xl">

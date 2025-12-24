@@ -4,11 +4,14 @@ import { FormCard } from "./FormCard";
 
 type Props = {
   initialForms: {
-    id: number | string;
+    hash: string;
     title: string;
     description: string | null;
     created_at: string;
     status: string;
+    visit_count: number;
+    response_count: number;
+    conversion_rate: number;
   }[];
 };
 
@@ -25,13 +28,14 @@ export function FormCards({ initialForms }: Props) {
     <>
       {initialForms.map((form) => (
         <FormCard
-          key={form.id}
-          id={form.id}
+          key={form.hash}
+          hash={form.hash}
           title={form.title}
           description={form.description}
-          visits={0}
-          submissions={0}
-          createdAt={form.created_at}
+          visit_count={form.visit_count}
+          response_count={form.response_count}
+          conversion_rate={form.conversion_rate}
+          created_at={form.created_at}
           status={form.status}
         />
       ))}

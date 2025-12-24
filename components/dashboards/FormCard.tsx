@@ -1,4 +1,3 @@
-// components/dashboards/FormCard.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -9,26 +8,27 @@ import { Edit, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type Props = {
-  id: number | string;
+  hash: string;
   title: string;
   description?: string | null;
-  visits: number;
-  submissions: number;
-  createdAt: string;
+  visit_count?: number;
+  response_count?: number;
+  conversion_rate?: number;
+  created_at: string;
   status: string;
 };
 
 export function FormCard({
-  id,
+  hash,
   title,
   description,
-  visits,
-  submissions,
-  createdAt,
+  visit_count,
+  response_count,
+  created_at,
   status,
 }: Props) {
   const router = useRouter();
-  const date = new Date(createdAt);
+  const date = new Date(created_at);
 
   const statusConfig = {
     draft: { label: "Черновик", variant: "secondary" as const },
@@ -40,14 +40,14 @@ export function FormCard({
   const statusInfo = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
 
   return (
-    <Card className="rounded-xl border bg-card/95 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer
-      border-blue-200 dark:border-transparent
-      ring-1 ring-blue-300/20 dark:ring-transparent
-      hover:ring-blue-500/50 dark:hover:ring-blue-400/50"
-      onClick={() => router.push(`/forms/${id}/`)}
+    <Card
+      className="rounded-xl border bg-card/95 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer
+        border-blue-200 dark:border-transparent
+        ring-1 ring-blue-300/20 dark:ring-transparent
+        hover:ring-blue-500/50 dark:hover:ring-blue-400/50"
+      onClick={() => router.push(`/forms/${hash}`)}
     >
       <CardContent className="p-5">
-        {/* Статус + Дата */}
         <div className="flex items-center justify-between mb-2">
           <Badge variant={statusInfo.variant}>
             {statusInfo.label}
@@ -57,12 +57,10 @@ export function FormCard({
           </span>
         </div>
 
-        {/* Название */}
         <h3 className="text-lg font-semibold line-clamp-2 mb-2">
           {title}
         </h3>
 
-        {/* Описание */}
         <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
           {description || "Без описания"}
         </p>
@@ -74,13 +72,13 @@ export function FormCard({
           <div>
             <p className="text-muted-foreground text-xs">Посещений</p>
             <p className="text-xl font-bold">
-              {visits.toLocaleString("ru-RU")}
+              {visit_count}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Ответов</p>
             <p className="text-xl font-bold">
-              {submissions.toLocaleString("ru-RU")}
+              {response_count}
             </p>
           </div>
         </div>
@@ -91,8 +89,8 @@ export function FormCard({
             className="flex-1"
             size="sm"
             onClick={(e) => {
-              e.stopPropagation(); // ← не срабатывает клик по карточке
-              router.push(`/builder/${id}`);
+              e.stopPropagation();
+              router.push(`/builder/${hash}`);
             }}
           >
             <Edit className="mr-2 h-4 w-4" />
@@ -104,9 +102,9 @@ export function FormCard({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              const link = `${window.location.origin}/f/${id}`;
+              const link = `${window.location.origin}/f/${hash}`;
               navigator.clipboard.writeText(link);
-              alert("Ссылка скопирована!");
+              alert("Публичная ссылка скопирована!\n\n" + link);
             }}
           >
             <Share2 className="h-4 w-4" />

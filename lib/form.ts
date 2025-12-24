@@ -1,19 +1,36 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE!; 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
 const BASIC_AUTH = process.env.NEXT_PUBLIC_API_BASIC_AUTH
   ? "Basic " + btoa(process.env.NEXT_PUBLIC_API_BASIC_AUTH)
   : "";
 
-const TELEGRAM_ID = "123456789"; 
+const TELEGRAM_ID = "123456789";
 
 const getHeaders = () => ({
   "Content-Type": "application/json",
   ...(BASIC_AUTH ? { Authorization: BASIC_AUTH } : {}),
 });
 
+const mapClientTypeToServer = (type: string): string => {
+  const map: Record<string, string> = {
+    TextField: "text",
+    TextareaField: "text_area",
+    SelectField: "single_choice",
+    RadioField: "single_choice",
+    CheckboxField: "multiple_choice",
+    NumberField: "number",
+    ScaleField: "scale",
+    DateField: "date",
+    TitleField: "info",
+    SubTitleField: "info",
+    ParagraphField: "info",
+  };
+  return map[type] || "text";
+};
+
 // Получение всех форм
 export async function getMyForms() {
   try {
-    const url = `${API_BASE}/forms/telegram/${TELEGRAM_ID}/`;
+    const url = `${API_BASE}/forms/by_tg_id/?tg_id=${TELEGRAM_ID}`;
     console.log("Запрос к:", url);
 
     const res = await fetch(url, {
@@ -23,45 +40,53 @@ export async function getMyForms() {
 
     if (!res.ok) {
       console.error("HTTP error:", res.status, await res.text());
-      return [];
+      return { results: [], user_statistics: null };
     }
 
     const data = await res.json();
     console.log("Ответ от сервера:", data);
-
-    if (data && data.forms && Array.isArray(data.forms)) {
-      return data.forms;
+    
+    if (data && data.results && Array.isArray(data.results)) {
+      return {
+        results: data.results,
+        user_statistics: data.user_statistics || null,
+      };
     }
 
-    return [];
+    return { results: [], user_statistics: null };
   } catch (error) {
-    console.error("Network error:", error);
-    return [];
+    console.error("getMyForms error:", error);
+    return { results: [], user_statistics: null };
   }
 }
 
-// lib/form.ts
-export async function getFormById(id: string) {
-  try {
-    const url = `${API_BASE}/forms/${id}/`;
-    console.log("Загружаем форму:", url);
+export async function getFormByHash(hash: string) {
+  if (!hash) {
+    console.error("Hash пустой!");
+    return null;
+  }
 
+  const url = `${API_BASE}/forms/${hash}/`;
+
+  try {
     const res = await fetch(url, {
       headers: getHeaders(),
       cache: "no-store",
     });
 
+    console.log("Статус ответа:", res.status);
+
     if (!res.ok) {
       const text = await res.text();
-      console.error("Форма не найдена или ошибка авторизации:", res.status, text);
+      console.error("Ошибка от сервера:", res.status, text);
       return null;
     }
 
     const data = await res.json();
-    console.log("Форма получена:", data);
+    console.log("Форма успешно загружена:", data);
     return data;
-  } catch (error) {
-    console.error("getFormById error:", error);
+  } catch (error: any) {
+    console.error("Ошибка fetch (сеть/CORS/таймаут):", error.message);
     return null;
   }
 }
@@ -87,19 +112,50 @@ export async function createForm(data: { name: string; description?: string }) {
   }
 }
 
-export async function saveForm(id: string, data: { title: string; elements: any[] }) {
+export async function saveForm(hash: string, data: { title: string; elements: any[] }) {
   try {
-    const res = await fetch(`${API_BASE}/forms/telegram/${TELEGRAM_ID}/${id}/`, {
+    const formRes = await fetch(`${API_BASE}/forms/${hash}/`, {
       method: "PUT",
       headers: getHeaders(),
       body: JSON.stringify({
+        tg_id: TELEGRAM_ID,
         title: data.title,
-        content: JSON.stringify({ elements: data.elements }),
+        description: "",
+        type: "survey",
+        status: "draft",
       }),
     });
 
-    if (!res.ok) throw new Error("Ошибка сохранения");
-    return await res.json();
+    if (!formRes.ok) {
+      const text = await formRes.text();
+      throw new Error(`Ошибка обновления формы: ${formRes.status} ${text}`);
+    }
+
+    const questions = data.elements.map((el, index) => ({
+      type: mapClientTypeToServer(el.type),
+      text: el.extraAttributes?.label || "Без названия",
+      is_required: !!el.extraAttributes?.required,
+      order: index + 1,
+      options: el.extraAttributes?.options || null,
+    }));
+
+    const questionsRes = await fetch(`${API_BASE}/forms/${hash}/add_questions/`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        tg_id: TELEGRAM_ID,
+        questions,
+      }),
+    });
+
+    if (!questionsRes.ok) {
+      const text = await questionsRes.text();
+      console.error("Ответ сервера:", text);
+      throw new Error(`Ошибка добавления вопросов: ${questionsRes.status} ${text}`);
+    }
+
+    console.log("Форма и вопросы успешно сохранены!");
+    return await questionsRes.json();
   } catch (error) {
     console.error("saveForm error:", error);
     throw error;

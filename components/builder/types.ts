@@ -3,6 +3,7 @@ export type ElementsType =
   | "TextareaField"
   | "SelectField"
   | "CheckboxField"
+  | "RadioField"
   | "DateField"
   | "NumberField"
   | "TitleField"
@@ -10,7 +11,8 @@ export type ElementsType =
   | "ParagraphField"
   | "SeparatorField"
   | "SpacerField"
-  | "RadioField";   
+  | "ScaleField"; 
+
 export type FormElementInstance = {
   id: string;
   type: ElementsType;

@@ -22,6 +22,7 @@ const formElements = [
   { type: "SelectField" as const, label: "Выпадающий список" },
   { type: "CheckboxField" as const, label: "Чекбоксы" },
   { type: "RadioField" as const, label: "Радиокнопки" },
+  { type: "ScaleField" as const, label: "Шкала 1-10" },
 ];
 
 function SidebarBtnElement({ type }: { type: ElementType }) {

@@ -5,36 +5,76 @@ import { Designer } from "@/components/builder/Designer";
 import { PreviewDialogBtn } from "@/components/builder/PreviewDialogBtn";
 import { FormElementInstance } from "@/components/builder/types";
 import { useState, useEffect } from "react";
+import { saveForm } from "@/lib/form";
 
-export default function BuilderPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params); 
+export default function BuilderPage({ params }: { params: Promise<{ hash: string }> }) {
+  const { hash } = use(params);
 
   const [formTitle, setFormTitle] = useState("Новая форма");
   const [elements, setElements] = useState<FormElementInstance[]>([]);
   const [selectedElement, setSelectedElement] = useState<FormElementInstance | null>(null);
 
-  // Восстановление формы при загрузке
   useEffect(() => {
-    const saved = localStorage.getItem(`form_${id}`);
+    const saved = localStorage.getItem(`form_${hash}`);
     if (saved) {
       try {
         const data = JSON.parse(saved);
         setFormTitle(data.title || "Новая форма");
-        const restoredElements = data.elements.map((el: any) => ({
-          id: el.id,
-          type: el.type,
-          extraAttributes: { ...el }, 
-        }));
-        setElements(restoredElements);
+        setElements(data.elements || []);
       } catch (e) {
-        console.log("Не удалось загрузить форму");
+        console.log("Не удалось загрузить из localStorage");
       }
     }
-  }, [id]);
+  }, [hash]);
+
+  const handleSave = async () => {
+    const elementsForServer = elements
+      .filter(el => !["SeparatorField", "SpacerField"].includes(el.type))
+      .map(el => ({
+        type: mapClientTypeToServer(el.type),
+        text: el.extraAttributes?.label || "Без названия",
+        is_required: !!el.extraAttributes?.required,
+        options: el.extraAttributes?.options || null,
+      }));
+
+    try {
+      await saveForm(hash, {
+        title: formTitle,
+        elements: elementsForServer,
+      });
+
+      // Сохраняем в localStorage 
+      localStorage.setItem(`form_${hash}`, JSON.stringify({
+        title: formTitle,
+        elements,
+      }));
+
+      alert("Форма успешно сохранена на сервере!");
+    } catch (error) {
+      alert("Ошибка сохранения на сервере");
+      console.error(error);
+    }
+  };
+
+  const mapClientTypeToServer = (type: string): string => {
+    const map: Record<string, string> = {
+      TextField: "text",
+      TextareaField: "text",
+      SelectField: "single_choice",
+      RadioField: "single_choice",
+      CheckboxField: "multiple_choice",
+      NumberField: "number",
+      ScaleField: "scale",
+      DateField: "date",
+      TitleField: "info",
+      SubTitleField: "info",
+      ParagraphField: "info",
+    };
+    return map[type] || "text";
+  };
 
   return (
     <div className="h-screen w-screen flex flex-col">
-      {/* Шапка */}
       <header className="border-b bg-background px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <input
@@ -49,33 +89,17 @@ export default function BuilderPage({ params }: { params: Promise<{ id: string }
           <PreviewDialogBtn elements={elements} />
 
           <button
-            onClick={() => {
-              const formJson = {
-                id,
-                title: formTitle,
-                createdAt: new Date().toISOString(),
-                elements: elements.map(el => ({
-                  id: el.id,
-                  type: el.type,
-                  ...el.extraAttributes,
-                })),
-              };
-
-              const jsonString = JSON.stringify(formJson, null, 2);
-              console.log("Форма сохранена:", jsonString);
-              localStorage.setItem(`form_${id}`, jsonString);
-              alert("Форма сохранена!");
-            }}
+            onClick={handleSave}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
-            Сохранить
+            Сохранить на сервере
           </button>
 
           <button
             onClick={() => {
-              const link = `${window.location.origin}/f/${id}`;
+              const link = `${window.location.origin}/f/${hash}`;
               navigator.clipboard.writeText(link);
-              alert(`Ссылка скопирована!\n\n${link}`);
+              alert(`Публичная ссылка скопирована!\n\n${link}`);
             }}
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
           >
@@ -84,7 +108,6 @@ export default function BuilderPage({ params }: { params: Promise<{ id: string }
         </div>
       </header>
 
-      {/* Конструктор */}
       <div className="flex-1">
         <Designer
           elements={elements}

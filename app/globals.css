@@ -121,3 +121,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes blink {
+  0%, 100% { height: 24px; }
+  50% { height: 8px; }
+}
+
+.animate-blink {
+  animation: blink 3s infinite;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}

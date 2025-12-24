@@ -44,6 +44,10 @@ import { SeparatorFieldForm } from "./SeparatorFieldForm";
 import { SpacerFieldDesigner } from "./SpacerFieldDesigner";
 import { SpacerFieldForm } from "./SpacerFieldForm";
 
+import { ScaleFieldDesigner } from "./ScaleFieldDesigner";
+import { ScaleFieldForm } from "./ScaleFieldForm";
+import { ScaleFieldProperties } from "./ScaleFieldProperties";
+
 const NoProperties = () => null;
 
 export const FormElements = {
@@ -106,5 +110,11 @@ export const FormElements = {
     designerComponent: SpacerFieldDesigner,
     formComponent: SpacerFieldForm,
     propertiesComponent: NoProperties,
+  },
+
+  ScaleField: {
+    designerComponent: ScaleFieldDesigner,
+    formComponent: ScaleFieldForm,
+    propertiesComponent: ScaleFieldProperties,
   },
 } as const;

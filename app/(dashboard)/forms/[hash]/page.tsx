@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getFormById } from "@/lib/form";
+import { getFormByHash } from "@/lib/form";
 import { FormElements } from "@/components/builder/elements/FormElements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,17 +12,17 @@ import { Edit, Link2, Trash2 } from "lucide-react";
 export default function FormPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const hash = params.hash as string;
 
   const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getFormById(id).then((data) => {
+    getFormByHash(hash).then((data) => {
       setFormData(data);
       setLoading(false);
     });
-  }, [id]);
+  }, [hash]);
 
   if (loading) {
     return (
@@ -40,11 +40,46 @@ export default function FormPage() {
     );
   }
 
-  const elements = formData.elements || [];
+  // Данные из бэкенда
+  const visits = formData.visit_count || 0;
+  const submissions = formData.response_count || 0;
+  const conversion = formData.conversion_rate || 0;
 
-  const visits = 1247;
-  const submissions = 892;
-  const conversion = visits > 0 ? Math.round((submissions / visits) * 100) : 0;
+  // Вопросы из бэкенда
+  const questions = formData.questions || [];
+
+  // Безопасный парсинг options
+  const parseOptions = (options: any): string[] | undefined => {
+    if (!options) return undefined;
+
+    if (typeof options === "string") {
+      try {
+        const parsed = JSON.parse(options);
+        return Array.isArray(parsed) ? parsed : undefined;
+      } catch {
+        return options
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+      }
+    }
+
+    if (Array.isArray(options)) return options;
+
+    return undefined;
+  };
+
+  // Маппинг типов бэкенда 
+  const typeMap: Record<string, keyof typeof FormElements> = {
+    text: "TextField",
+    text_area: "TextareaField",
+    single_choice: "RadioField",
+    multiple_choice: "CheckboxField",
+    number: "NumberField",
+    scale: "ScaleField",
+    date: "DateField",
+    info: "ParagraphField",
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,9 +91,6 @@ export default function FormPage() {
               <Badge variant={formData.status === "active" ? "default" : "secondary"}>
                 {formData.status === "active" ? "Активна" : "Черновик"}
               </Badge>
-              <span className="text-sm text-muted-foreground">
-                ID: {id}
-              </span>
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
               {formData.title}
@@ -102,7 +134,7 @@ export default function FormPage() {
               variant="outline"
               className="min-w-[160px] justify-center"
               onClick={() => {
-                const link = `${window.location.origin}/f/${id}`;
+                const link = `${window.location.origin}/f/${hash}`;
                 navigator.clipboard.writeText(link);
                 alert("Ссылка скопирована!");
               }}
@@ -113,7 +145,7 @@ export default function FormPage() {
 
             <Button
               className="min-w-[160px] justify-center"
-              onClick={() => router.push(`/builder/${id}`)}
+              onClick={() => router.push(`/builder/${hash}`)}
             >
               <Edit className="mr-2 h-5 w-5" />
               Редактировать
@@ -129,7 +161,7 @@ export default function FormPage() {
           </div>
         </div>
 
-        {/* Правая колонка */}
+        {/* Правая колонка — предпросмотр формы */}
         <div className="h-full">
           <Card className="h-full rounded-3xl shadow-2xl overflow-hidden">
             <CardContent className="p-0 h-full">
@@ -141,7 +173,7 @@ export default function FormPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-8 lg:p-12 space-y-8">
-                  {elements.length === 0 ? (
+                  {questions.length === 0 ? (
                     <div className="h-full flex items-center justify-center">
                       <p className="text-xl text-muted-foreground text-center">
                         Форма пуста.<br />
@@ -149,12 +181,23 @@ export default function FormPage() {
                       </p>
                     </div>
                   ) : (
-                    elements.map((element: any) => {
-                      const type = element.type as keyof typeof FormElements;
-                      const FormComponent = FormElements[type].formComponent;
+                    questions.map((element: any) => {
+                      const clientType = typeMap[element.type] || "TextField";
+                      const FormComponent = FormElements[clientType].formComponent;
+
+                      const elementInstance = {
+                        id: element.id.toString(),
+                        type: clientType as keyof typeof FormElements,
+                        extraAttributes: {
+                          label: element.text || "Без названия",
+                          required: element.is_required || false,
+                          options: parseOptions(element.options),
+                        },
+                      };
+
                       return (
                         <div key={element.id}>
-                          <FormComponent elementInstance={element} />
+                          <FormComponent elementInstance={elementInstance} />
                         </div>
                       );
                     })
