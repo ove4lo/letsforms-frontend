@@ -332,3 +332,45 @@ export async function updateFormStatus(hash: string, status: string) {
 
   return await res.json();
 }
+
+export async function getResponsesByHash(hash: string) {
+  try {
+    const url = `${API_BASE}/forms/${hash}/responses/`;
+    const res = await fetch(url, {
+      headers: getHeaders(),
+    });
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results || data;
+  } catch (error) {
+    console.error("getResponsesByHash error:", error);
+    return [];
+  }
+}
+
+// lib/form.ts
+export async function submitFormResponses(hash: string, answers: Record<string, any>) {
+  try {
+    const responseAnswers = Object.entries(answers).map(([questionId, answer]) => ({
+      question_id: Number(questionId),
+      answer: answer || null,
+    }));
+
+    const res = await fetch(`${API_BASE}/forms/${hash}/submit/`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ answers: responseAnswers }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Ошибка отправки");
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("submitFormResponses error:", error);
+    throw error;
+  }
+}
