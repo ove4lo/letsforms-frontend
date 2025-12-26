@@ -14,24 +14,19 @@ export default function AuthCallback() {
     if (payload) {
       try {
         const decoded = JSON.parse(atob(payload));
-
         localStorage.setItem("access_token", decoded.access_token || "");
-        if (decoded.refresh_token) {
-          localStorage.setItem("refresh_token", decoded.refresh_token);
-        }
+        if (decoded.refresh_token) localStorage.setItem("refresh_token", decoded.refresh_token);
         localStorage.setItem("tg_user", JSON.stringify(decoded));
       } catch (e) {
-        console.error("Ошибка парсинга payload", e);
+        console.error("Ошибка парсинга", e);
       }
     }
 
-    router.replace("/");
+    // Возвращаемся на форму, если пришли с неё
+    const redirect = sessionStorage.getItem("redirectAfterLogin") || "/";
+    sessionStorage.removeItem("redirectAfterLogin");
+    router.replace(redirect);
   }, [searchParams, router]);
 
-  return (
-    <LoadingCat 
-      message="Вход выполнен..." 
-      subMessage="Перенаправляем на дашборд" 
-    />
-  );
+  return <LoadingCat message="Вход выполнен..." subMessage="Перенаправляем..." />;
 }

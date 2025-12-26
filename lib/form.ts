@@ -340,27 +340,47 @@ export async function getResponsesByHash(hash: string) {
       headers: getHeaders(),
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error("Ошибка загрузки ответов:", res.status);
+      return { results: [] };
+    }
+
     const data = await res.json();
-    return data.results || data;
+    return data; 
   } catch (error) {
     console.error("getResponsesByHash error:", error);
-    return [];
+    return { results: [] };
   }
 }
 
-// lib/form.ts
 export async function submitFormResponses(hash: string, answers: Record<string, any>) {
   try {
+    // Получаем tg_id из localStorage
+    const tgUserStr = localStorage.getItem("tg_user");
+    let tgId = null;
+    if (tgUserStr) {
+      try {
+        const user = JSON.parse(tgUserStr);
+        tgId = user.id || user.telegram_id;
+      } catch {}
+    }
+
+    if (!tgId) {
+      throw new Error("Не удалось определить пользователя");
+    }
+
     const responseAnswers = Object.entries(answers).map(([questionId, answer]) => ({
       question_id: Number(questionId),
-      answer: answer || null,
+      answer: answer ?? null,
     }));
 
     const res = await fetch(`${API_BASE}/forms/${hash}/submit/`, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify({ answers: responseAnswers }),
+      body: JSON.stringify({
+        tg_id: tgId,
+        responses: responseAnswers, // ← responses, не answers
+      }),
     });
 
     if (!res.ok) {
@@ -371,6 +391,25 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
     return await res.json();
   } catch (error) {
     console.error("submitFormResponses error:", error);
+    throw error;
+  }
+}
+
+export async function deleteForm(hash: string) {
+  try {
+    const res = await fetch(`${API_BASE}/forms/${hash}/`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Ошибка удаления: ${res.status} ${text}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("deleteForm error:", error);
     throw error;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getFormByHash, submitFormResponses } from "@/lib/form";
 import { FormElementInstance } from "@/components/builder/types";
@@ -12,6 +12,7 @@ import { LoadingCat } from "@/components/LoadingCat";
 
 export default function PublicFormPage() {
   const params = useParams();
+  const router = useRouter();
   const hash = params.hash as string;
 
   const [form, setForm] = useState<any>(null);
@@ -21,7 +22,17 @@ export default function PublicFormPage() {
   const [showThankYou, setShowThankYou] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Проверка авторизации
   useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      // Сохраняем текущий URL, чтобы вернуться после логина
+      sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
+      router.push("/auth");
+      return;
+    }
+
+    // Если авторизован — загружаем форму
     async function loadForm() {
       const data = await getFormByHash(hash);
       if (data) {
@@ -53,7 +64,7 @@ export default function PublicFormPage() {
     }
 
     loadForm();
-  }, [hash]);
+  }, [hash, router]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -89,7 +100,7 @@ export default function PublicFormPage() {
   };
 
   if (loading) {
-    return <LoadingCat />;
+    return <LoadingCat message="Проверка авторизации и загрузка формы..." />;
   }
 
   if (!form) {

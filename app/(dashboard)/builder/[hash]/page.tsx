@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Link2, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PublishDialog } from "@/components/PublishDialog";
 
 export default function BuilderPage({ params }: { params: Promise<{ hash: string }> }) {
   const { hash } = use(params);
@@ -35,7 +36,7 @@ export default function BuilderPage({ params }: { params: Promise<{ hash: string
       if (data) {
         setFormTitle(data.title || "Новая форма");
         setFormDescription(data.description || "");
-        setFormStatus(data.status || "draft"); 
+        setFormStatus(data.status || "draft");
 
         if (data.questions && data.questions.length > 0) {
           const restoredElements = data.questions.map((q: any) => {
@@ -232,65 +233,7 @@ export default function BuilderPage({ params }: { params: Promise<{ hash: string
         />
       </div>
 
-      {/* Модальное окно с ссылками */}
-      <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-2xl text-center">Форма опубликована!</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-6">
-            {/* Ссылка на сайт */}
-            <div>
-              <p className="text-sm font-medium mb-2">Прямая ссылка на форму:</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={`${window.location.origin}/f/${hash}`}
-                  className="flex-1 bg-muted px-3 py-2 rounded text-sm font-mono"
-                />
-                <Button size="sm" variant="outline" onClick={() => copyLink("web")}>
-                  {copiedType === "web" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-
-            {/* Ссылка для Telegram */}
-            <div>
-              <p className="text-sm font-medium mb-2">Ссылка для Telegram бота:</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={`t.me/${process.env.NEXT_PUBLIC_BOT_NAME}?start=form_${hash}`}
-                  className="flex-1 bg-muted px-3 py-2 rounded text-sm font-mono break-all"
-                />
-                <Button size="sm" variant="outline" onClick={() => copyLink("tg")}>
-                  {copiedType === "tg" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setPublishOpen(false)} className="w-full">
-              Закрыть
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!copiedType} onOpenChange={() => setCopiedType(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="sr-only">Ссылка скопирована</DialogTitle>
-          </DialogHeader>
-
-          <div className="text-center py-6">
-            <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <p className="text-lg font-medium">Ссылка скопирована!</p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hash={hash} />
     </div>
   );
 }

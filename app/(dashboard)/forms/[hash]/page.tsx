@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getFormByHash, updateFormStatus } from "@/lib/form";
+import { deleteForm, getFormByHash, updateFormStatus } from "@/lib/form";
 import { FormElements } from "@/components/builder/elements/FormElements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Link2, Trash2 } from "lucide-react";
+import { Edit, Link2, MessageSquare, Trash2 } from "lucide-react";
 import { LoadingCat } from "@/components/LoadingCat";
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { PublishDialog } from "@/components/PublishDialog";
 
 // Конфиг статусов
 const statusConfig = {
@@ -33,6 +34,7 @@ export default function FormPage() {
   const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   useEffect(() => {
     getFormByHash(hash).then((data) => {
@@ -71,6 +73,25 @@ export default function FormPage() {
       alert("Не удалось обновить статус. Попробуйте позже.");
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Вы уверены, что хотите удалить форму? Это действие нельзя отменить.")) return;
+
+    try {
+      await deleteForm(hash);
+      router.push("/"); // или на дашборд
+    } catch (error) {
+      alert("Ошибка удаления формы");
+    }
+  };
+
+  const handlePublish = () => {
+    if (formData?.status === "active") {
+      setPublishOpen(true);
+    } else {
+      handleStatusChange("active").then(() => setPublishOpen(true));
     }
   };
 
@@ -249,34 +270,24 @@ export default function FormPage() {
             </Card>
           </div>
 
-          {/* Кнопки */}
-          <div className="flex gap-4">
-            <Button
-              variant="outline"
-              className="min-w-[160px] justify-center"
-              onClick={() => {
-                const link = `${window.location.origin}/f/${hash}`;
-                navigator.clipboard.writeText(link);
-                alert("Ссылка скопирована!");
-              }}
-            >
-              <Link2 className="mr-2 h-5 w-5" />
+          <div className="flex gap-3">
+            <Button onClick={handlePublish} variant="default" className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
               Опубликовать
             </Button>
 
-            <Button
-              className="min-w-[160px] justify-center"
-              onClick={() => router.push(`/builder/${hash}`)}
-            >
-              <Edit className="mr-2 h-5 w-5" />
+            <Button onClick={() => router.push(`/builder/${hash}`)} variant="outline" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
               Редактировать
             </Button>
 
-            <Button
-              variant="destructive"
-              className="min-w-[160px] justify-center"
-            >
-              <Trash2 className="mr-2 h-5 w-5" />
+            <Button onClick={() => router.push(`/forms/${hash}/responses`)} variant="outline" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Ответы
+            </Button>
+
+            <Button onClick={handleDelete} variant="destructive" className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4" />
               Удалить
             </Button>
           </div>
@@ -352,6 +363,8 @@ export default function FormPage() {
             </CardContent>
           </Card>
         </div>
+
+        <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hash={hash} />
       </div>
     </div>
   );
