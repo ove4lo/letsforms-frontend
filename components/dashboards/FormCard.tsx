@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Share2 } from "lucide-react";
+import { Edit, Share2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { PublishDialog } from "@/components/PublishDialog";
 
 type Props = {
   hash: string;
@@ -22,12 +24,15 @@ export function FormCard({
   hash,
   title,
   description,
-  visit_count,
-  response_count,
+  visit_count = 0,
+  response_count = 0,
+  conversion_rate = 0,
   created_at,
   status,
 }: Props) {
   const router = useRouter();
+  const [publishOpen, setPublishOpen] = useState(false);
+
   const date = new Date(created_at);
 
   const statusConfig = {
@@ -72,13 +77,13 @@ export function FormCard({
           <div>
             <p className="text-muted-foreground text-xs">Посещений</p>
             <p className="text-xl font-bold">
-              {visit_count}
+              {visit_count?.toLocaleString("ru-RU") || 0}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Ответов</p>
             <p className="text-xl font-bold">
-              {response_count}
+              {response_count?.toLocaleString("ru-RU") || 0}
             </p>
           </div>
         </div>
@@ -97,20 +102,22 @@ export function FormCard({
             Редактировать
           </Button>
 
+          {/* Кнопка "Опубликовать" с модалкой */}
           <Button
             variant="outline"
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              const link = `${window.location.origin}/f/${hash}`;
-              navigator.clipboard.writeText(link);
-              alert("Публичная ссылка скопирована!\n\n" + link);
+              setPublishOpen(true);
             }}
           >
             <Share2 className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>
+
+      {/* Модальное окно с ссылками */}
+      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hash={hash} />
     </Card>
   );
 }

@@ -336,17 +336,31 @@ export async function updateFormStatus(hash: string, status: string) {
 export async function getResponsesByHash(hash: string) {
   try {
     const url = `${API_BASE}/forms/${hash}/responses/`;
+    
+    console.log("Запрос ответов:", url);
+    console.log("Заголовки:", getHeaders());
+
     const res = await fetch(url, {
       headers: getHeaders(),
     });
 
+    const text = await res.text(); // читаем как текст, чтобы увидеть ошибку
+    console.log("Статус ответа:", res.status);
+    console.log("Тело ответа:", text);
+
     if (!res.ok) {
-      console.error("Ошибка загрузки ответов:", res.status);
+      console.error("Ошибка загрузки ответов:", res.status, text);
       return { results: [] };
     }
 
-    const data = await res.json();
-    return data; 
+    try {
+      const data = JSON.parse(text);
+      console.log("Успешно распарсили JSON:", data);
+      return data; // возвращаем весь объект (включая responses)
+    } catch (parseError) {
+      console.error("Ошибка парсинга JSON:", parseError);
+      return { results: [] };
+    }
   } catch (error) {
     console.error("getResponsesByHash error:", error);
     return { results: [] };
@@ -379,7 +393,7 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
       headers: getHeaders(),
       body: JSON.stringify({
         tg_id: tgId,
-        responses: responseAnswers, // ← responses, не answers
+        responses: responseAnswers, 
       }),
     });
 

@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+const BOT_NAME_BASE = process.env.NEXT_PUBLIC_BOT_NAME!;
+
 export function TelegramLoginButton() {
   useEffect(() => {
     const container = document.getElementById("telegram-login");
@@ -11,7 +13,7 @@ export function TelegramLoginButton() {
 
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.setAttribute("data-telegram-login", "GoIPsender_bot");
+    script.setAttribute("data-telegram-login", BOT_NAME_BASE);
     script.setAttribute("data-size", "large");
     script.setAttribute("data-auth-url", "/api/auth/telegram-login");
     script.setAttribute("data-request-access", "write");
