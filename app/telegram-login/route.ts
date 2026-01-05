@@ -30,6 +30,8 @@ export async function GET(request: Request) {
       body: JSON.stringify(telegramData),
     });
 
+    console.log(backendResponse);
+
     if (!backendResponse.ok) {
       return NextResponse.redirect(`${currentDomain}/auth`);
     }
