@@ -30,35 +30,46 @@ export async function GET(request: Request) {
       body: JSON.stringify(telegramData),
     });
 
-    console.log(backendResponse);
+    console.log("Backend response:", backendResponse.status);
 
     if (!backendResponse.ok) {
-      return NextResponse.redirect(`${currentDomain}/auth`);
+      console.error("Backend error:", await backendResponse.text());
+      return NextResponse.redirect(`${currentDomain}/auth?error=backend`);
     }
 
     const backendData = await backendResponse.json();
+    console.log("Backend data:", backendData);
 
     if (!backendData.success || !backendData.tokens?.access) {
-      return NextResponse.redirect(`${currentDomain}/auth`);
+      return NextResponse.redirect(`${currentDomain}/auth?error=no_tokens`);
     }
 
     // Объединяем данные Telegram + токен от бэкенда
     const fullUser = {
-      ...telegramData, // first_name, photo_url, username
+      ...telegramData,
       access_token: backendData.tokens.access,
       refresh_token: backendData.tokens.refresh || null,
-      ...backendData.user,
+      user_id: backendData.user_id,
+      username: backendData.username,
     };
 
-    const payload = btoa(JSON.stringify(fullUser));
+    // ФИКС: Кодируем в base64 правильно (для Unicode)
+    const jsonString = JSON.stringify(fullUser);
+    // Вариант 1: Используем Buffer в Node.js
+    const payload = Buffer.from(jsonString).toString('base64');
+    
+    // Или вариант 2: Используем encodeURIComponent для строки
+    // const payload = encodeURIComponent(jsonString);
 
     const callbackUrl = `${currentDomain}/auth/callback?payload=${payload}`;
+    console.log("Redirecting to:", callbackUrl);
 
     return NextResponse.redirect(callbackUrl);
+    
   } catch (error: any) {
     console.error("Ошибка:", error);
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = request.headers.get("x-forwarded-proto") || "https";
-    return NextResponse.redirect(`${protocol}://${host}/auth`);
+    return NextResponse.redirect(`${protocol}://${host}/auth?error=exception`);
   }
 }
