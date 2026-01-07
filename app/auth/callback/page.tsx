@@ -4,6 +4,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LoadingCat } from "@/components/LoadingCat";
 
+export const dynamic = 'force-dynamic';
+
 export default function AuthCallback() {
   const searchParams = useSearchParams();
   const router = useRouter();
