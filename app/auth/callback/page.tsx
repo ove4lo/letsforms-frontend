@@ -1,10 +1,10 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LoadingCat } from "@/components/LoadingCat";
-
-export const dynamic = 'force-dynamic';
 
 export default function AuthCallback() {
   const searchParams = useSearchParams();
@@ -12,7 +12,7 @@ export default function AuthCallback() {
 
   useEffect(() => {
     console.log("AuthCallback: текущий URL:", window.location.href);
-    console.log("searchParams:", Object.fromEntries(searchParams));
+    console.log("searchParams:", Object.fromEntries(searchParams.entries()));
 
     const payload = searchParams.get("payload");
 
@@ -34,7 +34,7 @@ export default function AuthCallback() {
       }
       localStorage.setItem("tg_user", JSON.stringify(decoded));
 
-      console.log("Токены и пользователь сохранены в localStorage");
+      console.log("Токены сохранены");
     } catch (e) {
       console.error("Ошибка парсинга payload:", e);
       router.replace("/auth?error=invalid_payload");
