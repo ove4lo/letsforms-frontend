@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     }
 
     // POST на бэкенд 
-    const backendResponse = await fetch(`${API_BASE}/auth`, {
+    const backendResponse = await fetch(`${API_BASE}/auth/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(telegramData),
