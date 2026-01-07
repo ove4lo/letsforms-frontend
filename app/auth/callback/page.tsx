@@ -9,21 +9,38 @@ export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
+    console.log("AuthCallback: текущий URL:", window.location.href);
+    console.log("searchParams:", Object.fromEntries(searchParams));
+
     const payload = searchParams.get("payload");
 
-    if (payload) {
-      try {
-        const decoded = JSON.parse(atob(payload));
-        localStorage.setItem("access_token", decoded.access_token || "");
-        if (decoded.refresh_token) localStorage.setItem("refresh_token", decoded.refresh_token);
-        localStorage.setItem("tg_user", JSON.stringify(decoded));
-      } catch (e) {
-        console.error("Ошибка парсинга", e);
-      }
+    if (!payload) {
+      console.error("Payload не найден в URL");
+      router.replace("/auth?error=no_payload");
+      return;
     }
 
-    // Возвращаемся на форму, если пришли с неё
+    console.log("Payload получен:", payload);
+
+    try {
+      const decoded = JSON.parse(atob(payload));
+      console.log("Декодированные данные:", decoded);
+
+      localStorage.setItem("access_token", decoded.access_token || "");
+      if (decoded.refresh_token) {
+        localStorage.setItem("refresh_token", decoded.refresh_token);
+      }
+      localStorage.setItem("tg_user", JSON.stringify(decoded));
+
+      console.log("Токены и пользователь сохранены в localStorage");
+    } catch (e) {
+      console.error("Ошибка парсинга payload:", e);
+      router.replace("/auth?error=invalid_payload");
+      return;
+    }
+
     const redirect = sessionStorage.getItem("redirectAfterLogin") || "/";
+    console.log("Редирект на:", redirect);
     sessionStorage.removeItem("redirectAfterLogin");
     router.replace(redirect);
   }, [searchParams, router]);
