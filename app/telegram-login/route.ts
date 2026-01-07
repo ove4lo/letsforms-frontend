@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       auth_date: searchParams.get("auth_date"),
       hash: searchParams.get("hash"),
     };
+    console.log("Telegram data:", telegramData);
 
     if (!telegramData.id || !telegramData.hash) {
       return NextResponse.redirect(`${currentDomain}/auth`);
@@ -31,16 +32,12 @@ export async function GET(request: Request) {
       body: JSON.stringify(telegramData),
     });
 
-
-    console.log("Front data", JSON.stringify(telegramData));
-
     if (!backendResponse.ok) {
       console.error("Backend error:", await backendResponse.text());
       return NextResponse.redirect(`${currentDomain}/auth?error=backend`);
     }
 
     const backendData = await backendResponse.json();
-    console.log("Backend data:", backendData);
 
     if (!backendData.success || !backendData.tokens?.access) {
       return NextResponse.redirect(`${currentDomain}/auth?error=no_tokens`);
