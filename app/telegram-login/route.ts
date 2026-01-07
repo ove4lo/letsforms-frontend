@@ -31,7 +31,8 @@ export async function GET(request: Request) {
       body: JSON.stringify(telegramData),
     });
 
-    console.log("Backend response:", backendResponse.status);
+
+    console.log("Front data", JSON.stringify(telegramData));
 
     if (!backendResponse.ok) {
       console.error("Backend error:", await backendResponse.text());
