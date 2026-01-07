@@ -5,6 +5,7 @@ export async function GET(request: Request) {
     const host = request.headers.get("host") || "";
     const protocol = request.headers.get("x-forwarded-proto") || "https";
     const currentDomain = `${protocol}://${host}`;
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
 
     const url = new URL(request.url);
     const searchParams = url.searchParams;
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     }
 
     // POST на бэкенд
-    const backendResponse = await fetch("https://l-manager.ru/api/auth/", {
+    const backendResponse = await fetch( `${API_BASE}/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(telegramData),

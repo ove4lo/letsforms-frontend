@@ -9,14 +9,15 @@ import { saveForm, getFormByHash, updateFormStatus } from "@/lib/form";
 import { FormElements } from "@/components/builder/elements/FormElements";
 import { LoadingCat } from "@/components/LoadingCat";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Link2, Copy, Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Link2} from "lucide-react";
 import { PublishDialog } from "@/components/PublishDialog";
+import { ErrorDialog } from "@/components/ErrorDialog";
+import { useRouter } from "next/navigation";
 
 export default function BuilderPage({ params }: { params: Promise<{ hash: string }> }) {
   const { hash } = use(params);
+  const router = useRouter();
 
   const [formTitle, setFormTitle] = useState("Новая форма");
   const [formDescription, setFormDescription] = useState("");
@@ -27,6 +28,8 @@ export default function BuilderPage({ params }: { params: Promise<{ hash: string
 
   const [publishOpen, setPublishOpen] = useState(false);
   const [copiedType, setCopiedType] = useState<"web" | "tg" | null>(null);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Загружаем форму с сервера
   useEffect(() => {
@@ -111,6 +114,13 @@ export default function BuilderPage({ params }: { params: Promise<{ hash: string
   };
 
   const handlePublish = async () => {
+    // Если форма пустая — сразу показываем ошибку
+    if (elements.length === 0) {
+      setErrorMessage("Нельзя опубликовать форму без вопросов. Добавьте хотя бы один вопрос.");
+      setErrorOpen(true);
+      return;
+    }
+
     if (formStatus === "active") {
       setPublishOpen(true);
       return;
@@ -118,16 +128,24 @@ export default function BuilderPage({ params }: { params: Promise<{ hash: string
 
     try {
       await updateFormStatus(hash, "active");
-      setFormStatus("active"); // обновляем локально
+      setFormStatus("active");
       setPublishOpen(true);
+      router.refresh();
     } catch (error: any) {
-      if (error.message.includes("уже имеет статус")) {
+      // Любая ошибка от сервера
+      let message = "Ошибка публикации формы";
+      if (error.message.includes("без вопросов")) {
+        message = "Нельзя опубликовать форму без вопросов. Добавьте хотя бы один вопрос.";
+      } else if (error.message.includes("уже имеет статус")) {
         setFormStatus("active");
         setPublishOpen(true);
-      } else {
-        alert("Ошибка публикации");
-        console.error(error);
+        return;
+      } else if (error.message) {
+        message = error.message;
       }
+
+      setErrorMessage(message);
+      setErrorOpen(true);
     }
   };
 
@@ -234,6 +252,13 @@ export default function BuilderPage({ params }: { params: Promise<{ hash: string
       </div>
 
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hash={hash} />
+
+      <ErrorDialog
+        open={errorOpen}
+        onOpenChange={setErrorOpen}
+        errorMessage={errorMessage}
+        title="Не удалось опубликовать"
+      />
     </div>
   );
 }
