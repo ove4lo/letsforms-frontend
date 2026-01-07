@@ -15,7 +15,7 @@ export function TelegramLoginButton() {
     script.src = "https://telegram.org/js/telegram-widget.js?22";
     script.setAttribute("data-telegram-login", BOT_NAME_BASE);
     script.setAttribute("data-size", "large");
-    script.setAttribute("data-auth-url", "/api/auth/telegram-login");
+    script.setAttribute("data-auth-url", "/telegram-login");
     script.setAttribute("data-request-access", "write");
     script.async = true;
 
