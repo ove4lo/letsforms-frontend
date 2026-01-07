@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     });
 
 
-    console.log("Front data", JSON.stringify(telegramData));
+    console.log(telegramData);
 
     if (!backendResponse.ok) {
       console.error("Backend error:", await backendResponse.text());
