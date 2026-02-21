@@ -39,8 +39,6 @@ const getHeaders = (): Record<string, string> => {
   return headers;
 };
 
-// ОСТАЛЬНЫЕ ФУНКЦИИ 
-
 // Получение всех форм пользователя
 export async function getMyForms() {
   try {

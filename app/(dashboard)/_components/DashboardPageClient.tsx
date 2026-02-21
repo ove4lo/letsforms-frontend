@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { CardStatsWrapper } from "@/components/dashboards/CardStatsWrapper";
 import { StatsCardsLoading } from "@/components/dashboards/StatsCardsLoading";
 import { CreateFormBtn } from "@/components/CreateFormBtn";
@@ -9,17 +9,40 @@ import { getMyForms } from "@/lib/form";
 import { FormCardSkeleton } from "@/components/dashboards/FormCardSkeleton";
 import { ErrorDialog } from "@/components/ErrorDialog";
 
-export default function DashboardPageClient() {
-  const [forms, setForms] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+interface DashboardPageClientProps {
+  initialForms: any[];
+  initialStats: any | null;
+}
+
+export default function DashboardPageClient({
+  initialForms = [],
+  initialStats = null,
+}: DashboardPageClientProps) {
+  const [forms, setForms] = useState<any[]>(initialForms);
+  const [stats, setStats] = useState<any>(initialStats);
+  const [loading, setLoading] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadForms = async () => {
+  // Ключевой флаг, который сохраняется между монтированиями
+  const hasFetched = useRef(false);
+  const isMounted = useRef(true);
+
+  const refreshForms = async () => {
+    // Защита от дублей
+    if (hasFetched.current) {
+      console.log("[refreshForms] Уже выполнен → пропускаем (Strict Mode или повторный mount)");
+      return;
+    }
+
+    hasFetched.current = true;
     setLoading(true);
+
     try {
+      console.log("[refreshForms] Начинаем загрузку данных...");
       const data = await getMyForms();
-      const mappedForms = (data.results || []).map((form: any) => ({
+      
+      const mapped = (data.results || []).map((form: any) => ({
         hash: form.hash,
         title: form.title,
         description: form.description,
@@ -29,46 +52,61 @@ export default function DashboardPageClient() {
         response_count: form.response_count || 0,
         conversion_rate: form.conversion_rate || 0,
       }));
-      setForms(mappedForms);
+      
+      setForms(mapped);
+      setStats(data.user_statistics || null);
     } catch (error: any) {
-      console.error("Ошибка загрузки форм:", error);
+      console.error("Ошибка обновления форм:", error);
       if (error.status === 401) {
-          // Очищаем localStorage
-          if (typeof window !== "undefined") {
-              localStorage.removeItem("tg_user");
-              localStorage.removeItem("access_token");
-              localStorage.removeItem("refresh_token");
-          }
-          setErrorMessage("Сессия истекла. Пожалуйста, войдите снова.");
-          setErrorOpen(true);
-          return;
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("tg_user");
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+        }
+        setErrorMessage("Сессия истекла. Пожалуйста, войдите снова.");
+        setErrorOpen(true);
+        return;
       }
-      setErrorMessage(
-        "Не удалось загрузить ваши формы. Попробуйте позже или перезайдите."
-      );
+      setErrorMessage("Не удалось обновить формы. Попробуйте позже.");
       setErrorOpen(true);
-      setForms([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadForms();
+    // Сохраняем, что компонент смонтирован
+    isMounted.current = true;
+
+    // Запускаем загрузку только один раз
+    if (initialForms.length === 0 || !initialStats) {
+      refreshForms();
+    }
+
+    return () => {
+      isMounted.current = false;
+      // Можно добавить отмену запросов, если нужно
+    };
   }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold">Добро пожаловать!</h1> 
+      <h1 className="text-3xl font-bold mb-8">Добро пожаловать!</h1>
 
       <Suspense fallback={<StatsCardsLoading />}>
-        <CardStatsWrapper />
+        <CardStatsWrapper
+          initialStats={stats}
+          loading={loading}
+        />
       </Suspense>
 
       <div className="mt-12" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <CreateFormBtn onFormCreated={loadForms} />
+        <CreateFormBtn onFormCreated={() => {
+          hasFetched.current = false; // сбрасываем флаг при создании новой формы
+          refreshForms();
+        }} />
 
         {loading ? (
           <>
@@ -77,13 +115,13 @@ export default function DashboardPageClient() {
             <FormCardSkeleton />
           </>
         ) : forms.length === 0 ? (
-          <div className="col-span-full md:col-span-1 lg:col-span-2 xl:col-span-3 flex items-center justify-center py-20">
-            <div className="text-center">
+          <div className="col-span-full flex items-center justify-center py-20 text-center">
+            <div>
               <p className="text-3xl font-semibold text-muted-foreground mb-4">
                 У вас пока нет форм
               </p>
               <p className="text-lg text-muted-foreground">
-                Нажмите кнопку слева, чтобы создать первую форму
+                Нажмите кнопку «Создать форму», чтобы начать
               </p>
             </div>
           </div>
