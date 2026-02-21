@@ -28,18 +28,19 @@ export default function PublicFormPage() {
     if (!token) {
       // Сохраняем текущий URL, чтобы вернуться после логина
       sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
-      router.push("/auth");
+      router.push("/auth/");
       return;
     }
 
     // Если авторизован — загружаем форму
     async function loadForm() {
       const data = await getFormByHash(hash);
-      if (data) {
-        setForm(data);
-
-        if (data.questions?.length > 0) {
-          const restored = data.questions.map((q: any) => {
+      
+      if (data && data.success && data.form) {
+        setForm(data.form); 
+        
+        if (data.form.questions?.length > 0) {
+          const restored = data.form.questions.map((q: any) => {
             const clientType = mapServerTypeToClient(q.type);
 
             return {
@@ -58,8 +59,11 @@ export default function PublicFormPage() {
             };
           });
           setElements(restored);
+
+          
         }
       }
+      
       setLoading(false);
     }
 
@@ -103,10 +107,10 @@ export default function PublicFormPage() {
     return <LoadingCat message="Проверка авторизации и загрузка формы..." />;
   }
 
-  if (!form) {
+  if (!form || !form.title) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-2xl text-muted-foreground">Форма не найдена</p>
+        <p className="text-2xl text-muted-foreground">Форма не найдена или недоступна</p>
       </div>
     );
   }

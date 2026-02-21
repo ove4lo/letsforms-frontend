@@ -1,63 +1,52 @@
 import { FormElementInstance } from "@/components/builder/types";
+import { getCookie } from "./cookies"; 
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
 
-const getHeaders = () => {
-  // Получаем токен из localStorage
-  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  
-  // Базовые заголовки
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  
-  // Добавляем токен, если он есть
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-  
-  return headers;
-};
-
-// Получаем Telegram ID пользователя
+// Функция для получения Telegram ID
 const getTelegramId = (): string => {
-  if (typeof window === 'undefined') return '';
-  
+  // Получаем JSON-строку из куки tg_user
+  const tgUserJson = getCookie("tg_user");
+  if (!tgUserJson) {
+    console.warn("Данные пользователя (tg_user) не найдены в cookies.");
+    return '';
+  }
+
   try {
-    const tgUserStr = localStorage.getItem('tg_user');
-    if (!tgUserStr) return '';
-    
-    const user = JSON.parse(tgUserStr);
-    return user.telegram_id || user.id || '';
+    // tgUserJson теперь декодированная строка
+    const user = JSON.parse(tgUserJson);
+    return user.id || user.telegram_id || '';
   } catch (error) {
-    console.error('Ошибка получения Telegram ID:', error);
+    console.error('Ошибка парсинга tg_user из cookies:', error, 'Полученная строка:', tgUserJson);
     return '';
   }
 };
 
-const mapClientTypeToServer = (type: string): string => {
-  const map: Record<string, string> = {
-    TextField: 'text',
-    TextareaField: 'text_area',
-    SelectField: 'select',
-    RadioField: 'single_choice',
-    CheckboxField: 'multiple_choice',
-    NumberField: 'number',
-    ScaleField: 'scale',
-    DateField: 'date',
-    TitleField: 'info',
-    SubTitleField: 'info',
-    ParagraphField: 'info',
+// Функция для получения заголовков
+const getHeaders = (): Record<string, string> => {
+  const accessToken = getCookie("access_token"); 
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
   };
-  return map[type] || 'text';
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  } else {
+    console.warn("Access token не найден в cookies (не httpOnly). Запрос может завершиться с 401.");
+  }
+
+  return headers;
 };
+
+// ОСТАЛЬНЫЕ ФУНКЦИИ 
 
 // Получение всех форм пользователя
 export async function getMyForms() {
   try {
     const telegramId = getTelegramId();
     if (!telegramId) {
-      console.error('Telegram ID не найден');
+      console.error('Telegram ID не найден в cookies');
       return { results: [], user_statistics: null };
     }
 
@@ -65,27 +54,31 @@ export async function getMyForms() {
     console.log('Запрос к:', url);
 
     const res = await fetch(url, {
-      headers: getHeaders(),
+      headers: getHeaders(), 
       cache: 'no-store',
-      credentials: 'include', 
+      credentials: 'include',
     });
 
     if (!res.ok) {
-      console.error('HTTP error:', res.status, await res.text());
-      
+      const responseText = await res.text(); 
+      console.error('HTTP error:', res.status, responseText);
+
       if (res.status === 401) {
         const refreshed = await refreshToken();
         if (refreshed) {
           return getMyForms();
+        } else {
+          console.error('Токен недействителен и не удалось обновить. Редирект на /auth ожидается в компоненте.');
+          return { results: [], user_statistics: null };
         }
       }
-      
+
       return { results: [], user_statistics: null };
     }
 
     const data = await res.json();
     console.log('Ответ от сервера:', data);
-    
+
     if (data && data.results && Array.isArray(data.results)) {
       return {
         results: data.results,
@@ -106,20 +99,24 @@ export async function getFormByHash(hash: string) {
     console.error('Hash пустой!');
     return null;
   }
-
   const url = `${API_BASE}/forms/${hash}/`;
-
   try {
     const res = await fetch(url, {
       headers: getHeaders(),
       cache: 'no-store',
+      credentials: 'include', // Отправляем куки
     });
-
     console.log('Статус ответа:', res.status);
 
     if (!res.ok) {
       const text = await res.text();
       console.error('Ошибка от сервера:', res.status, text);
+      if (res.status === 401) {
+        const refreshed = await refreshToken();
+        if (refreshed) {
+          return getFormByHash(hash); // Повтор с новыми куками/токеном
+        }
+      }
       return null;
     }
 
@@ -133,30 +130,30 @@ export async function getFormByHash(hash: string) {
 }
 
 // Создание новой формы
-export async function createForm(data: { name: string; description?: string }) {
+export async function createForm(formData: { name: string; description?: string }) {
   try {
     const telegramId = getTelegramId();
     if (!telegramId) {
-      throw new Error('Пользователь не авторизован');
+      throw new Error('Пользователь не авторизован (cookies)');
     }
-
     const res = await fetch(`${API_BASE}/forms/`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
         tg_id: telegramId,
-        title: data.name,
-        description: data.description || null,
+        title: formData.name,
+        description: formData.description || null,
         type: 'survey',
         status: 'draft',
       }),
+      credentials: 'include', // Отправляем куки
     });
 
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`Ошибка создания: ${res.status} ${errorText}`);
     }
-    
+
     return await res.json();
   } catch (error) {
     console.error('createForm error:', error);
@@ -164,11 +161,30 @@ export async function createForm(data: { name: string; description?: string }) {
   }
 }
 
+// ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ СОПОСТАВЛЕНИЯ ТИПОВ
+const mapClientTypeToServer = (type: string): string => {
+  const map: Record<string, string> = {
+    TextField: 'text',
+    TextareaField: 'text_area',
+    SelectField: 'select',
+    RadioField: 'single_choice',
+    CheckboxField: 'multiple_choice',
+    NumberField: 'number',
+    ScaleField: 'scale',
+    DateField: 'date',
+    TitleField: 'info',
+    SubTitleField: 'info',
+    ParagraphField: 'info',
+  };
+  return map[type] || 'text';
+};
+
+// Сохранение формы
 export async function saveForm(hash: string, data: { title: string; elements: FormElementInstance[] }) {
   try {
     const telegramId = getTelegramId();
     if (!telegramId) {
-      throw new Error('Пользователь не авторизован');
+      throw new Error('Пользователь не авторизован (cookies)');
     }
 
     // Обновляем форму
@@ -182,6 +198,7 @@ export async function saveForm(hash: string, data: { title: string; elements: Fo
         type: "survey",
         status: "draft",
       }),
+      credentials: 'include', 
     });
 
     if (!formRes.ok) {
@@ -189,10 +206,11 @@ export async function saveForm(hash: string, data: { title: string; elements: Fo
       throw new Error(`Ошибка обновления формы: ${formRes.status} ${text}`);
     }
 
+    // Подготовка вопросов
     const questions = data.elements
-      .filter(el => !["SeparatorField", "SpacerField"].includes(el.type))
+      .filter(el => !["SeparatorField", "SpacerField"].includes(el.type)) // Фильтруем служебные элементы
       .map((el, index) => {
-        const attrs = el.extraAttributes || {}; 
+        const attrs = el.extraAttributes || {};
 
         const base = {
           type: mapClientTypeToServer(el.type),
@@ -201,6 +219,7 @@ export async function saveForm(hash: string, data: { title: string; elements: Fo
           is_required: !!attrs.required,
         };
 
+        // Обработка специфических атрибутов для разных типов
         switch (el.type) {
           case "TextField":
           case "TextareaField":
@@ -240,8 +259,9 @@ export async function saveForm(hash: string, data: { title: string; elements: Fo
         }
       });
 
-    console.log("Отправляем на сервер:", questions);
+    console.log("Отправляем вопросы на сервер: ", questions);
 
+    // Заменяем вопросы в форме
     const questionsRes = await fetch(`${API_BASE}/forms/${hash}/replace_questions/`, {
       method: "PUT",
       headers: getHeaders(),
@@ -249,11 +269,12 @@ export async function saveForm(hash: string, data: { title: string; elements: Fo
         tg_id: telegramId,
         questions,
       }),
+      credentials: 'include',
     });
 
     if (!questionsRes.ok) {
       const text = await questionsRes.text();
-      throw new Error(`Ошибка добавления вопросов: ${questionsRes.status} ${text}`);
+      throw new Error(`Ошибка обновления вопросов: ${questionsRes.status} ${text}`);
     }
 
     console.log("Форма и вопросы успешно сохранены!");
@@ -267,52 +288,60 @@ export async function saveForm(hash: string, data: { title: string; elements: Fo
 // Функция для обновления токена
 async function refreshToken(): Promise<boolean> {
   try {
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (!refreshToken) return false;
+    const refreshTokenValue = getCookie("refresh_token");
+    if (!refreshTokenValue) {
+      console.warn("Refresh token не найден в cookies (не httpOnly).");
+      return false;
+    }
 
     const res = await fetch(`${API_BASE}/auth/refresh/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ refresh: refreshToken }),
+      body: JSON.stringify({ refresh: refreshTokenValue }),
     });
 
-    if (!res.ok) return false;
+    if (!res.ok) {
+      console.error("Ошибка обновления токена на сервере:", res.status, await res.text());
+      return false;
+    }
 
     const data = await res.json();
-    
-    // Сохраняем новый access токен
-    localStorage.setItem('access_token', data.access);
-    
-    if (data.refresh) {
-      localStorage.setItem('refresh_token', data.refresh);
+
+    if (data.access) {
+      document.cookie = `access_token=${data.access}; path=/; ${process.env.NODE_ENV === 'production' ? 'secure; ' : ''
+        }samesite=strict; max-age=${60 * 60 * 24}`; // 1 день
     }
-    
+
+    // Если сервер возвращает новый refresh_token, обновим его в cookies
+    if (data.refresh) {
+      document.cookie = `refresh_token=${data.refresh}; path=/; ${process.env.NODE_ENV === 'production' ? 'secure; ' : ''
+        }samesite=strict; max-age=${60 * 60 * 24 * 30}`; // 30 дней
+    }
+    console.log("Токены обновлены в cookies (не httpOnly).");
     return true;
   } catch (error) {
-    console.error('Ошибка обновления токена:', error);
+    console.error('Ошибка обновления токена (JS):', error);
     return false;
   }
 }
+
 
 // Функция обновления статуса
 export async function updateFormStatus(hash: string, status: string) {
   const telegramId = getTelegramId();
   if (!telegramId) {
-    throw new Error("Пользователь не авторизован");
+    throw new Error("Пользователь не авторизован (cookies)");
   }
 
-  const token = typeof window !== "undefined" 
-    ? localStorage.getItem("access_token") 
-    : null;
-    
+  // Получаем токен для заголовка Authorization
+  const token = getCookie("access_token");
   if (!token) {
-    throw new Error("Токен не найден");
+    throw new Error("Токен доступа не найден в cookies (не httpOnly).");
   }
 
   const url = `${API_BASE}/forms/${hash}/change_status/`;
-
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -323,6 +352,7 @@ export async function updateFormStatus(hash: string, status: string) {
       tg_id: telegramId,
       status: status,
     }),
+    credentials: 'include', // Отправляем куки
   });
 
   if (!res.ok) {
@@ -333,24 +363,31 @@ export async function updateFormStatus(hash: string, status: string) {
   return await res.json();
 }
 
+// Получение ответов по хэшу
 export async function getResponsesByHash(hash: string) {
   try {
     const url = `${API_BASE}/forms/${hash}/responses/`;
-    
     console.log("Запрос ответов:", url);
-    console.log("Заголовки:", getHeaders());
+    console.log("Заголовки:", getHeaders()); // Передаём токен из cookies
 
     const res = await fetch(url, {
-      headers: getHeaders(),
+      headers: getHeaders(), // Используем headers
+      credentials: 'include', // Отправляем куки
     });
 
-    const text = await res.text(); // читаем как текст, чтобы увидеть ошибку
+    const text = await res.text();
     console.log("Статус ответа:", res.status);
     console.log("Тело ответа:", text);
 
     if (!res.ok) {
       console.error("Ошибка загрузки ответов:", res.status, text);
-      return { results: [] };
+      if (res.status === 401) {
+        const refreshed = await refreshToken();
+        if (refreshed) {
+          return getResponsesByHash(hash); // Повтор с новыми куками/токеном
+        }
+      }
+      return { results: [] }; // Возвращаем пустой массив в случае ошибки
     }
 
     try {
@@ -367,22 +404,25 @@ export async function getResponsesByHash(hash: string) {
   }
 }
 
+// Отправка ответов на форму
 export async function submitFormResponses(hash: string, answers: Record<string, any>) {
   try {
-    // Получаем tg_id из localStorage
-    const tgUserStr = localStorage.getItem("tg_user");
+    // Получаем tg_id из cookies
+    const tgUserJsonEncoded = getCookie("tg_user");
     let tgId = null;
-    if (tgUserStr) {
+    if (tgUserJsonEncoded) {
       try {
-        const user = JSON.parse(tgUserStr);
+        const tgUserJson = decodeURIComponent(tgUserJsonEncoded);
+        const user = JSON.parse(tgUserJson);
         tgId = user.id || user.telegram_id;
-      } catch {}
+      } catch { }
     }
 
     if (!tgId) {
-      throw new Error("Не удалось определить пользователя");
+      throw new Error("Не удалось определить пользователя из cookies");
     }
 
+    // Подготовка ответов
     const responseAnswers = Object.entries(answers).map(([questionId, answer]) => ({
       question_id: Number(questionId),
       answer: answer ?? null,
@@ -393,13 +433,14 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
       headers: getHeaders(),
       body: JSON.stringify({
         tg_id: tgId,
-        responses: responseAnswers, 
+        responses: responseAnswers, // Отправляем подготовленный массив ответов
       }),
+      credentials: 'include', // Отправляем куки
     });
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(text || "Ошибка отправки");
+      throw new Error(text || "Ошибка отправки ответов");
     }
 
     return await res.json();
@@ -409,13 +450,14 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
   }
 }
 
+// Удаление формы
 export async function deleteForm(hash: string) {
   try {
     const res = await fetch(`${API_BASE}/forms/${hash}/`, {
       method: "DELETE",
       headers: getHeaders(),
+      credentials: 'include', // Отправляем куки
     });
-
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Ошибка удаления: ${res.status} ${text}`);
