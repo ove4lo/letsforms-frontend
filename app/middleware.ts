@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const publicPaths = ["/auth", "/telegram-login", "/auth/callback"];
+const publicPaths = ["/auth/", "/telegram-login", "/auth/callback"];
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
   );
 
   if (!tgUserCookie?.value) {
-    console.log("[Middleware] Нет tg_user → редирект на /auth");
+    console.log("[Middleware] Нет tg_user → редирект на /auth/");
     return redirectToAuth(request);
   }
 
@@ -45,7 +45,7 @@ export function middleware(request: NextRequest) {
 
 function redirectToAuth(request: NextRequest) {
   const url = request.nextUrl.clone();
-  url.pathname = "/auth";
+  url.pathname = "/auth/";
   url.search = "";
   return NextResponse.redirect(url);
 }

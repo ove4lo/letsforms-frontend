@@ -7,7 +7,6 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 
 // Функция для получения Telegram ID
-// Читаем из куки tg_user
 const getTelegramId = (): string => {
   // Получаем JSON-строку из куки tg_user (уже декодированную getCookie)
   const tgUserJson = getCookie("tg_user");
@@ -26,18 +25,17 @@ const getTelegramId = (): string => {
   }
 };
 
-// Функция для получения заголовков
-const getHeaders = (): Record<string, string> => {
-  const accessToken = getCookie("access_token");
 
+const getHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
+  // Только один вызов getCookie
+  const accessToken = getCookie("access_token");
+  
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
-  } else {
-    console.warn("Access token не найден в cookies (не httpOnly). Запрос может завершиться с 401.");
   }
 
   return headers;
@@ -112,17 +110,17 @@ const mapClientTypeToServer = (type: string): string => {
 // ОСНОВНЫЕ ФУНКЦИИ
 
 // Получение всех форм пользователя (административная версия)
-// Использует старый эндпоинт /forms/by_tg_id/, типизируем возвращаемое значение
 export async function getMyForms(): Promise<GetMyFormsResponse> {
   try {
     const telegramId = getTelegramId();
     if (!telegramId) {
-      console.error('Telegram ID не найден в cookies');
       return { results: [], user_statistics: undefined };
     }
+    
     const url = `${API_BASE}/forms/by_tg_id/?tg_id=${telegramId}`;
-    console.log('Запрос к:', url);
-
+    
+    console.log('📊 Загрузка списка форм...');
+    
     const res = await fetch(url, {
       headers: getHeaders(), 
       cache: 'no-store',
@@ -130,29 +128,19 @@ export async function getMyForms(): Promise<GetMyFormsResponse> {
     });
 
     if (!res.ok) {
-      const responseText = await res.text(); 
-      console.error('HTTP error:', res.status, responseText);
       if (res.status === 401) {
         const refreshed = await refreshToken();
         if (refreshed) {
           return getMyForms();
-        } else {
-          console.error('Токен недействителен и не удалось обновить. Редирект на /auth ожидается в компоненте.');
-          return { results: [], user_statistics: undefined };
         }
       }
-
       return { results: [], user_statistics: undefined };
     }
 
     const data: GetMyFormsResponse = await res.json();
-    console.log('Ответ от сервера (getMyForms):', data);
-
-    if (data && Array.isArray(data.results)) {
-      return data;
-    }
-
-    return { results: [], user_statistics: data.user_statistics || undefined };
+    console.log(`📊 Загружено форм: ${data.results?.length || 0}`);
+    return data;
+    
   } catch (error) {
     console.error('getMyForms error:', error);
     return { results: [], user_statistics: undefined };
@@ -160,46 +148,50 @@ export async function getMyForms(): Promise<GetMyFormsResponse> {
 }
 
 // Получение формы по хэшу (административная версия)
-// Использует старый эндпоинт /forms/{hash}/, типизируем возвращаемое значение
+// Использует эндпоинт /forms/{hash}/, типизируем возвращаемое значение
 export async function getFormByHash(hash: string): Promise<AdminServerForm | null> {
   if (!hash) {
     console.error('Hash пустой!');
     return null;
   }
+
   const url = `${API_BASE}/forms/${hash}/`;
+  
   try {
+    
+    const headers = getHeaders();
+    
     const res = await fetch(url, {
-      headers: getHeaders(),
+      headers: headers,
       cache: 'no-store',
       credentials: 'include',
     });
-    console.log('Статус ответа (getFormByHash):', res.status);
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error('Ошибка от сервера (getFormByHash):', res.status, text);
-      if (res.status === 401) {
-         const refreshed = await refreshToken();
-         if (refreshed) {
-            return getFormByHash(hash);
-         }
-         return null;
+    if (res.status === 401) {
+      console.error('Ошибка авторизации при загрузке формы');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/';
       }
       return null;
     }
 
+    if (!res.ok) {
+      console.error(`Ошибка загрузки формы: ${res.status}`);
+      return null;
+    }
+
     const data: AdminServerForm = await res.json();
-    console.log('Форма успешно загружена (getFormByHash):', data);
     return data;
+    
   } catch (error: any) {
-    console.error('Ошибка fetch (сеть/CORS/таймаут) (getFormByHash):', error.message);
+    console.error('Ошибка fetch:', error.message);
     return null;
   }
 }
 
 // Отправка ответов на форму
 // Типизируем параметры и возвращаемое значение
-export async function submitFormResponses(hash: string, answers: Record<string, any>): Promise<any> { // Можно уточнить возвращаемый тип
+export async function submitFormResponses(hash: string, answers: Record<string, any>): Promise<any> {
   try {
     // Получаем tg_id из cookies
     const tgUserJsonEncoded = getCookie("tg_user");
@@ -245,8 +237,8 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
 }
 
 // Получение ответов по хэшу
-// Использует старый эндпоинт /forms/{hash}/responses/, типизируем возвращаемое значение
-export async function getResponsesByHash(hash: string): Promise<GetResponsesResponse> { // Уточняем тип возврата
+// Использует эндпоинт /forms/{hash}/responses/, типизируем возвращаемое значение
+export async function getResponsesByHash(hash: string): Promise<GetResponsesResponse> { 
   try {
     const url = `${API_BASE}/forms/${hash}/responses/`;
     console.log("Запрос ответов (getResponsesByHash):", url);

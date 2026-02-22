@@ -6,20 +6,13 @@ export function getCookie(name: string): string | undefined {
 
   if (parts.length !== 2) return undefined;
 
-  let encoded = parts.pop()?.split(";").shift();
+  const encoded = parts.pop()?.split(";").shift();
   if (!encoded) return undefined;
 
-  // Пытаемся декодировать столько раз, сколько нужно
-  let decoded = encoded;
-  while (decoded.includes("%")) {
-    try {
-      const next = decodeURIComponent(decoded);
-      if (next === decoded) break; // больше не декодируется
-      decoded = next;
-    } catch {
-      break;
-    }
+  // Только одна попытка декодирования
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    return encoded;
   }
-
-  return decoded;
 }

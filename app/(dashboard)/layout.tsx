@@ -36,7 +36,7 @@ export default function DashboardLayout({
       ?.split("=")[1];
 
     if (!tgUserRaw) {
-      console.log("[Layout] tg_user в куках не найдена → на /auth");
+      console.log("[Layout] tg_user в куках не найдена → на /auth/");
       router.replace("/auth/");
       return;
     }

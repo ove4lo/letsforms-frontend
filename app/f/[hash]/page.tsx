@@ -1,74 +1,25 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getFormByHash, submitFormResponses } from "@/lib/form";
-import { FormElementInstance } from "@/components/builder/types";
-import { PublicFormElements, PublicElementsType } from "@/components/public-form/elements/PublicFormElements";
+import { useState } from "react";
+import { submitFormResponses } from "@/lib/form";
+import { PublicFormElements } from "@/components/public-form/elements/PublicFormElements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { LoadingCat } from "@/components/LoadingCat";
+import useLoadPublicForm from "@/hooks/useLoadPublicForm";
 
 export default function PublicFormPage() {
   const params = useParams();
   const router = useRouter();
   const hash = params.hash as string;
 
-  const [form, setForm] = useState<any>(null);
-  const [elements, setElements] = useState<FormElementInstance[]>([]);
+  const { form, elements, loading, error } = useLoadPublicForm(hash);
+  
   const [answers, setAnswers] = useState<Record<string, string | string[] | number>>({});
-  const [loading, setLoading] = useState(true);
   const [showThankYou, setShowThankYou] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Проверка авторизации
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      // Сохраняем текущий URL, чтобы вернуться после логина
-      sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
-      router.push("/auth/");
-      return;
-    }
-
-    // Если авторизован — загружаем форму
-    async function loadForm() {
-      const data = await getFormByHash(hash);
-      
-      if (data && data.success && data.form) {
-        setForm(data.form); 
-        
-        if (data.form.questions?.length > 0) {
-          const restored = data.form.questions.map((q: any) => {
-            const clientType = mapServerTypeToClient(q.type);
-
-            return {
-              id: q.id.toString(),
-              type: clientType,
-              extraAttributes: {
-                label: q.text || "Без названия",
-                required: q.is_required || false,
-                placeholder: q.placeholder || undefined,
-                options: q.options ? (Array.isArray(q.options) ? q.options : []) : undefined,
-                min: q.min || undefined,
-                max: q.max || undefined,
-                min_label: q.min_label || undefined,
-                max_label: q.max_label || undefined,
-              },
-            };
-          });
-          setElements(restored);
-
-          
-        }
-      }
-      
-      setLoading(false);
-    }
-
-    loadForm();
-  }, [hash, router]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -86,31 +37,16 @@ export default function PublicFormPage() {
     setAnswers(prev => ({ ...prev, [id]: value }));
   };
 
-  const mapServerTypeToClient = (serverType: string): PublicElementsType => {
-    const map: Record<string, PublicElementsType> = {
-      text: "TextField",
-      text_area: "TextareaField",
-      single_choice: "RadioField",
-      select: "SelectField",
-      multiple_choice: "CheckboxField",
-      number: "NumberField",
-      scale: "ScaleField",
-      date: "DateField",
-      info: "ParagraphField",
-      title: "TitleField",
-      subtitle: "SubTitleField",
-    };
-    return map[serverType] || "TextField";
-  };
-
   if (loading) {
-    return <LoadingCat message="Проверка авторизации и загрузка формы..." />;
+    return <LoadingCat message="Загрузка формы..." />;
   }
 
-  if (!form || !form.title) {
+  if (error || !form) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-2xl text-muted-foreground">Форма не найдена или недоступна</p>
+        <p className="text-2xl text-muted-foreground">
+          {error || "Форма не найдена или недоступна"}
+        </p>
       </div>
     );
   }
@@ -121,13 +57,15 @@ export default function PublicFormPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl">{form.title}</CardTitle>
-            {form.description && <p className="text-muted-foreground mt-2">{form.description}</p>}
+            {form.description && (
+              <p className="text-muted-foreground mt-2">{form.description}</p>
+            )}
           </CardHeader>
           <CardContent className="space-y-8">
             {elements
               .filter(el => !["SeparatorField", "SpacerField"].includes(el.type))
               .map((element) => {
-                const FormComponent = PublicFormElements[element.type as PublicElementsType]?.formComponent;
+                const FormComponent = PublicFormElements[element.type as keyof typeof PublicFormElements]?.formComponent;
                 if (!FormComponent) return null;
 
                 return (
