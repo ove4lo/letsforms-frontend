@@ -211,7 +211,7 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
           onViewResponses={() => router.push(`/forms/${hash}/responses`)}
           onDelete={handleDelete}
           onPublish={handlePublish}
-          onTakeForm={handleTakeForm}
+          onTakeForm={handleTakeForm} 
           publishOpen={publishOpen}
           setPublishOpen={setPublishOpen}
         />

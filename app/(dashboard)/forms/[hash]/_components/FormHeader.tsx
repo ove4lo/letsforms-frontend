@@ -26,19 +26,7 @@ export default function FormHeader({
   onDelete,
   onPublish,
   onTakeForm,
-  publishOpen,
-  setPublishOpen,
 }: FormHeaderProps) {
-  // Логика статуса
-  const statusConfig = {
-    draft: { label: "Черновик", variant: "secondary" as const },
-    active: { label: "Активна", variant: "default" as const },
-    paused: { label: "Приостановлена", variant: "secondary" as const },
-    archived: { label: "Архивирована", variant: "outline" as const },
-  };
-
-  const currentStatusInfo = statusConfig[formData.status] || statusConfig.draft;
-
   return (
     <div className="space-y-8">
       <div>
@@ -46,13 +34,16 @@ export default function FormHeader({
           <StatusSelector
             currentStatus={formData.status}
             onChange={onStatusChange}
-            disabled={isUpdating} // Отключаем при обновлении статуса
+            disabled={isUpdating}
           />
         </div>
 
-        <h1 className="text-4xl lg:text-5xl font-bold mb-6">
+        {/* Название формы */}
+        <h1 className="text-2xl lg:text-3xl font-bold mb-6">
           {formData.title || "Форма без названия"}
         </h1>
+        
+        {/* Описание формы */}
         {formData.description ? (
           <p className="text-xl text-muted-foreground leading-relaxed">
             {formData.description}
@@ -64,7 +55,7 @@ export default function FormHeader({
         )}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button onClick={onPublish} variant="default" className="flex items-center gap-2">
           <Link2 className="h-4 w-4" />
           Опубликовать

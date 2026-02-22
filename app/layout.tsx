@@ -12,7 +12,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "LetsForms — Конструктор форм для Telegram",
+    default: "LetsForms",
     template: "%s | LetsForms",
   },
   description: "Создавайте опросы, формы и анкеты прямо в Telegram",

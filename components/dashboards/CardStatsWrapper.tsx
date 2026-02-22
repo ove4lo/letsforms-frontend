@@ -17,7 +17,6 @@ export function CardStatsWrapper({
     return <StatsCardsLoading />;
   }
 
-  // Преобразуем данные в нужный формат
   const stats = initialStats
     ? {
         visits: initialStats.total_visits ?? 0,
@@ -31,20 +30,6 @@ export function CardStatsWrapper({
         submissionRate: 0,
         bounceRate: 0,
       };
-
-  // Если статистика нулевая
-  if (
-    stats.visits === 0 &&
-    stats.submissions === 0 &&
-    stats.submissionRate === 0 &&
-    stats.bounceRate === 0
-  ) {
-    return (
-      <div className="p-6 text-center text-muted-foreground rounded-lg border bg-card">
-        Пока нет статистики по формам
-      </div>
-    );
-  }
 
   return <StatsCards data={stats} loading={false} />;
 }
