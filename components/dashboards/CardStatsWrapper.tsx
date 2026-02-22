@@ -2,9 +2,10 @@
 
 import { StatsCards } from "./StatsCards";
 import { StatsCardsLoading } from "./StatsCardsLoading";
+import { UserStatistics } from "@/types/form";
 
 interface CardStatsWrapperProps {
-  initialStats: any | null;
+  initialStats?: UserStatistics | null;
   loading?: boolean;
 }
 
@@ -31,7 +32,7 @@ export function CardStatsWrapper({
         bounceRate: 0,
       };
 
-  // Если статистика нулевая и это не загрузка — можно показать сообщение
+  // Если статистика нулевая
   if (
     stats.visits === 0 &&
     stats.submissions === 0 &&
