@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import Logo from "@/components/Logo";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import {
@@ -18,7 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { 
+  LogOut, 
+  LayoutDashboard, 
+  ChevronLeft,
+  FileText
+} from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -26,6 +32,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,6 +71,24 @@ export default function DashboardLayout({
     }
   }, [router]);
 
+  // Функция для проверки, находимся ли мы на странице формы
+  const isFormPage = pathname?.startsWith('/forms/') && pathname !== '/forms';
+  const isBuilderPage = pathname?.startsWith('/builder/');
+  const isResponsesPage = pathname?.includes('/responses');
+  
+  // Получаем hash формы из URL если мы на странице формы
+  const formHash = isFormPage || isBuilderPage || isResponsesPage 
+    ? pathname?.split('/')[2] 
+    : null;
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleDashboard = () => {
+    router.push('/');
+  };
+
   if (loading) {
     return <div>Проверка авторизации...</div>;
   }
@@ -81,7 +106,64 @@ export default function DashboardLayout({
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <nav className="flex justify-between items-center border-b h-16 px-6">
-        <Logo />
+        <div className="flex items-center gap-4">
+          <Logo />
+
+          {/* Навигационные кнопки */}
+          <div className="flex items-center gap-2 ml-4">
+            {/* Кнопка "Назад" (появляется не на главной) */}
+            {pathname !== '/' && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleBack}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Назад
+              </Button>
+            )}
+
+            {/* Кнопка "Дашборд" (если не на главной) */}
+            {pathname !== '/' && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleDashboard}
+                className="flex items-center gap-1"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Дашборд
+              </Button>
+            )}
+
+            {/* Хлебные крошки / контекстные кнопки */}
+            {isFormPage && formHash && (
+              <>
+                <span className="text-muted-foreground mx-1">/</span>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/forms/${formHash}`} className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    Страница формы
+                  </Link>
+                </Button>
+              </>
+            )}
+
+            {isBuilderPage && formHash && (
+              <>
+                <span className="text-muted-foreground mx-1">/</span>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/forms/${formHash}`} className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    К странице формы
+                  </Link>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center gap-4">
           <ThemeSwitcher />
           <DropdownMenu>

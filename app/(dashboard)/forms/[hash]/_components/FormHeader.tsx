@@ -1,7 +1,13 @@
+// app/forms/[hash]/_components/FormHeader.tsx
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, Link2, MessageSquare, Trash2 } from "lucide-react";
 import { StatusSelector, FormStatus } from "@/components/StatusSelector";
-import { Button } from "@/components/ui/button";
+import { 
+  EditButton, 
+  TakeFormButton, 
+  ResponsesButton, 
+  DeleteButton,
+  PublishButton 
+} from "@/components/FormActionButtons";
 import { AdminServerForm } from "@/types/form";
 
 interface FormHeaderProps {
@@ -13,8 +19,7 @@ interface FormHeaderProps {
   onDelete: () => void;
   onPublish: () => void;
   onTakeForm: () => void;
-  publishOpen: boolean;
-  setPublishOpen: (open: boolean) => void;
+  hasQuestions: boolean;
 }
 
 export default function FormHeader({
@@ -26,6 +31,7 @@ export default function FormHeader({
   onDelete,
   onPublish,
   onTakeForm,
+  hasQuestions,
 }: FormHeaderProps) {
   return (
     <div className="space-y-8">
@@ -56,31 +62,38 @@ export default function FormHeader({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Button onClick={onPublish} variant="default" className="flex items-center gap-2">
-          <Link2 className="h-4 w-4" />
-          Опубликовать
-        </Button>
+        {/* Кнопка публикации/активации - доступна только если есть вопросы */}
+        <PublishButton 
+          onClick={onPublish} 
+          status={formData.status}
+          disabled={isUpdating || !hasQuestions} 
+        />
 
-        <Button onClick={onTakeForm} variant="outline" className="flex items-center gap-2">
-          <Eye className="h-4 w-4" />
-          Пройти форму
-        </Button>
+        {/* Кнопка "Пройти форму" - доступна только если есть вопросы */}
+        <TakeFormButton 
+          onClick={onTakeForm} 
+          disabled={!hasQuestions} 
+        />
 
-        <Button onClick={onEdit} variant="outline" className="flex items-center gap-2">
-          <Edit className="h-4 w-4" />
-          Редактировать
-        </Button>
+        <EditButton onClick={onEdit} />
 
-        <Button onClick={onViewResponses} variant="outline" className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
-          Ответы
-        </Button>
+        {/* Кнопка "Ответы" - доступна только если есть вопросы */}
+        <ResponsesButton 
+          onClick={onViewResponses} 
+          disabled={!hasQuestions} 
+        />
 
-        <Button onClick={onDelete} variant="destructive" className="flex items-center gap-2">
-          <Trash2 className="h-4 w-4" />
-          Удалить
-        </Button>
+        <DeleteButton onClick={onDelete} />
       </div>
+
+      {/* Подсказка для пустой формы */}
+      {!hasQuestions && (
+        <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            ⚠️ Форма пуста. Добавьте вопросы в редакторе, чтобы активировать кнопки "Пройти форму", "Ответы" и "Опубликовать".
+          </p>
+        </div>
+      )}
     </div>
   );
 }
