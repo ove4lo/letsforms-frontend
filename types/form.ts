@@ -74,6 +74,7 @@ export interface FormSummary {
   visit_count: number;
   response_count: number;
   conversion_rate: number;
+  questions_count: number;
 }
 
 

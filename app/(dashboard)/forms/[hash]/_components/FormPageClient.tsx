@@ -18,9 +18,14 @@ interface FormPageClientProps {
 
 export default function FormPageClient({ hash }: FormPageClientProps) {
   const router = useRouter();
-  const { formData, loading: loadingForm, error: loadError, refetch } = useLoadForm(hash);
+  const { formData, loading: loadingForm, error: loadError } = useLoadForm(hash);
   const { isUpdating: isStatusUpdating, updateStatus } = useFormStatusActions();
+
+  const [localStatus, setLocalStatus] = useState<FormStatus | null>(null);
+
   const [publishOpen, setPublishOpen] = useState(false);
+
+  const currentStatus = localStatus ?? formData?.status ?? "draft";
 
   const handleDelete = async () => {
     if (!confirm("Вы уверены, что хотите удалить форму? Это действие нельзя отменить.")) return;
@@ -33,7 +38,7 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
   };
 
   const handlePublish = () => {
-    if (formData?.status === "active") {
+    if (currentStatus === "active") {
       setPublishOpen(true);
     } else {
       handleStatusChange("active");
@@ -41,24 +46,27 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
   };
 
   const handleStatusChange = async (newStatus: FormStatus) => {
-    if (!formData || newStatus === formData.status || isStatusUpdating) return;
+    if (!formData || newStatus === currentStatus || isStatusUpdating) return;
+
     try {
       await updateStatus(hash, newStatus);
-      refetch();
+      setLocalStatus(newStatus);
+
       if (newStatus === "active") {
         setPublishOpen(true);
       }
     } catch (error: any) {
       console.error("Ошибка обновления статуса:", error);
+      alert(`Не удалось изменить статус: ${error.message || "Ошибка сервера"}`);
     }
   };
 
   const handleTakeForm = () => {
-    window.open(`/f/${hash}`, '_blank');
+    window.open(`/f/${hash}`, "_blank");
   };
 
-  // Флаг наличия вопросов (исключая информационные блоки)
-  const hasQuestions = (formData?.questions || []).some(q => q.type !== "info");
+  // Флаг наличия вопросов
+  const hasQuestions = (formData?.questions || []).some((q) => q.type !== "info");
 
   const parseOptions = (options: any): string[] | undefined => {
     if (!options) return undefined;
@@ -125,18 +133,10 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
     );
   }
 
-  if (loadingForm) {
+  if (loadingForm || !formData) {
     return (
       <div className="min-h-screen w-full bg-background">
         <LoadingCat message="Загрузка формы..." subMessage="Пожалуйста, подождите" />
-      </div>
-    );
-  }
-
-  if (!formData) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-xl text-muted-foreground">Форма не найдена</p>
       </div>
     );
   }
@@ -149,7 +149,7 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
         {/* Левая колонка */}
         <div className="space-y-8">
           <FormHeader
-            formData={formData}
+            formData={{ ...formData, status: currentStatus }}
             onStatusChange={handleStatusChange}
             isUpdating={isStatusUpdating}
             onEdit={() => router.push(`/builder/${hash}`)}
@@ -185,7 +185,7 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
                   .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
                   .map((question: any) => {
                     const clientType = typeMap[question.type] || "TextField";
-                    
+
                     if (question.type === "info") {
                       return (
                         <div key={question.id} className="space-y-2 p-4 bg-muted/30 rounded-lg">

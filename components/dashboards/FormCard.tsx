@@ -17,9 +17,9 @@ type Props = {
   visit_count?: number;
   response_count?: number;
   conversion_rate?: number;
+  questions_count?: number;
   created_at: string;
   status: string;
-  onStatusChange?: (hash: string, newStatus: string) => void;
 };
 
 export function FormCard({
@@ -29,14 +29,15 @@ export function FormCard({
   visit_count = 0,
   response_count = 0,
   conversion_rate = 0,
+  questions_count = 0,
   created_at,
-  status,
-  onStatusChange,
+  status: initialStatus,
 }: Props) {
   const router = useRouter();
   const [publishOpen, setPublishOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [localStatus, setLocalStatus] = useState(initialStatus);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const date = new Date(created_at);
@@ -48,9 +49,8 @@ export function FormCard({
     archived: { label: "Архивирована", variant: "outline" as const },
   };
 
-  const statusInfo = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
-
-  const hasQuestions = response_count > 0;
+  const statusInfo = statusConfig[localStatus as keyof typeof statusConfig] || statusConfig.draft;
+  const hasQuestions = questions_count > 0;
 
   const handlePublish = async () => {
     if (isUpdating) return;
@@ -58,17 +58,19 @@ export function FormCard({
     setIsUpdating(true);
     
     try {
-      // Отправляем запрос на сервер для изменения статуса
+      // Сначала открываем диалог
+      setPublishOpen(true);
+      
+      // Меняем статус локально
+      setLocalStatus("active");
+      
       await updateFormStatus(hash, "active");
       
-      // Обновляем локальный статус через колбэк
-      onStatusChange?.(hash, "active");
-      
-      // Открываем диалог с ссылками
-      setPublishOpen(true);
     } catch (error) {
       console.error("Ошибка публикации формы:", error);
       alert("Не удалось опубликовать форму. Попробуйте позже.");
+      setLocalStatus(initialStatus);
+      setPublishOpen(false);
     } finally {
       setIsUpdating(false);
     }
@@ -79,7 +81,6 @@ export function FormCard({
     e.stopPropagation();
     
     if (!hasQuestions) {
-      // Нет вопросов - показываем тултип
       setShowTooltip(true);
       
       if (tooltipTimeoutRef.current) {
@@ -91,16 +92,13 @@ export function FormCard({
       return;
     }
     
-    if (status === "active") {
-      // Уже активна - сразу показываем ссылки
+    if (localStatus === "active") {
       setPublishOpen(true);
     } else {
-      // Есть вопросы, но не активна - публикуем
       handlePublish();
     }
   };
 
-  // Очищаем таймаут при размонтировании
   useEffect(() => {
     return () => {
       if (tooltipTimeoutRef.current) {
@@ -128,7 +126,6 @@ export function FormCard({
       onClick={handleCardClick}
     >
       <CardContent className="p-5 relative">
-        {/* Тултип с подсказкой */}
         {showTooltip && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg shadow-lg p-3 min-w-[250px] text-center">
             <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
@@ -156,7 +153,6 @@ export function FormCard({
 
         <Separator className="my-4" />
 
-        {/* Статистика */}
         <div className="grid grid-cols-2 gap-4 text-center mb-4">
           <div>
             <p className="text-muted-foreground text-xs">Посещений</p>
@@ -172,7 +168,6 @@ export function FormCard({
           </div>
         </div>
 
-        {/* Кнопки */}
         <div className="flex gap-2">
           <Button
             className="flex-1"
@@ -184,19 +179,18 @@ export function FormCard({
             Редактировать
           </Button>
 
-          {/* Кнопка "Опубликовать/Поделиться" */}
           <Button
             variant="outline"
             size="sm"
             onClick={handleShareClick}
-            disabled={isUpdating || (!hasQuestions)}
-            className={(!hasQuestions || isUpdating) ? "opacity-50 cursor-not-allowed" : ""}
+            disabled={isUpdating}
+            className={isUpdating ? "opacity-50 cursor-wait" : ""}
             title={
               !hasQuestions 
                 ? "Сначала добавьте вопросы в редакторе" 
                 : isUpdating
                   ? "Публикация..."
-                  : status === "active"
+                  : localStatus === "active"
                     ? "Поделиться формой"
                     : "Опубликовать форму"
             }
@@ -206,7 +200,6 @@ export function FormCard({
         </div>
       </CardContent>
 
-      {/* Модальное окно с ссылками */}
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} hash={hash} />
     </Card>
   );
