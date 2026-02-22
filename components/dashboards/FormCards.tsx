@@ -13,9 +13,10 @@ type Props = {
     response_count: number;
     conversion_rate: number;
   }[];
+  onStatusChange?: (hash: string, newStatus: string) => void;
 };
 
-export function FormCards({ initialForms }: Props) {
+export function FormCards({ initialForms, onStatusChange }: Props) {
   if (initialForms.length === 0) {
     return (
       <div className="col-span-full text-center text-muted-foreground py-12">
@@ -37,6 +38,7 @@ export function FormCards({ initialForms }: Props) {
           conversion_rate={form.conversion_rate}
           created_at={form.created_at}
           status={form.status}
+          onStatusChange={onStatusChange}
         />
       ))}
     </>

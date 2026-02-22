@@ -15,7 +15,7 @@ export function PublishDialog({ open, onOpenChange, hash }: PublishDialogProps) 
   const [copiedType, setCopiedType] = useState<"web" | "tg" | null>(null);
 
   const webLink = `${window.location.origin}/f/${hash}`;
-  const tgLink = `t.me/${process.env.NEXT_PUBLIC_BOT_NAME}?start=form_${hash}`;
+  const tgLink = `https://t.me/${process.env.NEXT_PUBLIC_BOT_NAME}?start=form_${hash}`;
 
   const copyLink = (link: string, type: "web" | "tg") => {
     navigator.clipboard.writeText(link);
@@ -27,7 +27,7 @@ export function PublishDialog({ open, onOpenChange, hash }: PublishDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-center">Форма опубликована!</DialogTitle>
+          <DialogTitle className="text-2xl text-center">Ссылки на форму</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-6">
           {/* Ссылка на сайт */}
@@ -39,6 +39,7 @@ export function PublishDialog({ open, onOpenChange, hash }: PublishDialogProps) 
                 readOnly
                 value={webLink}
                 className="flex-1 bg-muted px-3 py-2 rounded text-sm font-mono"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <Button size="sm" variant="outline" onClick={() => copyLink(webLink, "web")}>
                 {copiedType === "web" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -55,6 +56,7 @@ export function PublishDialog({ open, onOpenChange, hash }: PublishDialogProps) 
                 readOnly
                 value={tgLink}
                 className="flex-1 bg-muted px-3 py-2 rounded text-sm font-mono break-all"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <Button size="sm" variant="outline" onClick={() => copyLink(tgLink, "tg")}>
                 {copiedType === "tg" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

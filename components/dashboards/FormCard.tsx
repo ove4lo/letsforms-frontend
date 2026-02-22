@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Share2, Trash2 } from "lucide-react";
+import { Edit, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PublishDialog } from "@/components/PublishDialog";
+import { updateFormStatus } from "@/lib/form";
 
 type Props = {
   hash: string;
@@ -18,6 +19,7 @@ type Props = {
   conversion_rate?: number;
   created_at: string;
   status: string;
+  onStatusChange?: (hash: string, newStatus: string) => void;
 };
 
 export function FormCard({
@@ -29,9 +31,13 @@ export function FormCard({
   conversion_rate = 0,
   created_at,
   status,
+  onStatusChange,
 }: Props) {
   const router = useRouter();
   const [publishOpen, setPublishOpen] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const date = new Date(created_at);
 
@@ -44,15 +50,93 @@ export function FormCard({
 
   const statusInfo = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
 
+  const hasQuestions = response_count > 0;
+
+  const handlePublish = async () => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
+    
+    try {
+      // Отправляем запрос на сервер для изменения статуса
+      await updateFormStatus(hash, "active");
+      
+      // Обновляем локальный статус через колбэк
+      onStatusChange?.(hash, "active");
+      
+      // Открываем диалог с ссылками
+      setPublishOpen(true);
+    } catch (error) {
+      console.error("Ошибка публикации формы:", error);
+      alert("Не удалось опубликовать форму. Попробуйте позже.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!hasQuestions) {
+      // Нет вопросов - показываем тултип
+      setShowTooltip(true);
+      
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+      tooltipTimeoutRef.current = setTimeout(() => {
+        setShowTooltip(false);
+      }, 3000);
+      return;
+    }
+    
+    if (status === "active") {
+      // Уже активна - сразу показываем ссылки
+      setPublishOpen(true);
+    } else {
+      // Есть вопросы, но не активна - публикуем
+      handlePublish();
+    }
+  };
+
+  // Очищаем таймаут при размонтировании
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/builder/${hash}`);
+  };
+
+  const handleCardClick = () => {
+    router.push(`/forms/${hash}`);
+  };
+
   return (
     <Card
       className="rounded-xl border bg-card/95 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer
         border-blue-200 dark:border-transparent
         ring-1 ring-blue-300/20 dark:ring-transparent
         hover:ring-blue-500/50 dark:hover:ring-blue-400/50"
-      onClick={() => router.push(`/forms/${hash}`)}
+      onClick={handleCardClick}
     >
-      <CardContent className="p-5">
+      <CardContent className="p-5 relative">
+        {/* Тултип с подсказкой */}
+        {showTooltip && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg shadow-lg p-3 min-w-[250px] text-center">
+            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              ⚠️ Добавьте хотя бы один вопрос, чтобы опубликовать форму
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-2">
           <Badge variant={statusInfo.variant}>
             {statusInfo.label}
@@ -93,23 +177,29 @@ export function FormCard({
           <Button
             className="flex-1"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/builder/${hash}`);
-            }}
+            onClick={handleEditClick}
+            disabled={isUpdating}
           >
             <Edit className="mr-2 h-4 w-4" />
             Редактировать
           </Button>
 
-          {/* Кнопка "Опубликовать" с модалкой */}
+          {/* Кнопка "Опубликовать/Поделиться" */}
           <Button
             variant="outline"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPublishOpen(true);
-            }}
+            onClick={handleShareClick}
+            disabled={isUpdating || (!hasQuestions)}
+            className={(!hasQuestions || isUpdating) ? "opacity-50 cursor-not-allowed" : ""}
+            title={
+              !hasQuestions 
+                ? "Сначала добавьте вопросы в редакторе" 
+                : isUpdating
+                  ? "Публикация..."
+                  : status === "active"
+                    ? "Поделиться формой"
+                    : "Опубликовать форму"
+            }
           >
             <Share2 className="h-4 w-4" />
           </Button>

@@ -1,8 +1,7 @@
+// app/(dashboard)/_components/DashboardPageClient.tsx
 "use client";
 
-import { Suspense } from "react";
 import { CardStatsWrapper } from "@/components/dashboards/CardStatsWrapper";
-import { StatsCardsLoading } from "@/components/dashboards/StatsCardsLoading";
 import { CreateFormBtn } from "@/components/CreateFormBtn";
 import { FormCards } from "@/components/dashboards/FormCards";
 import { FormCardSkeleton } from "@/components/dashboards/FormCardSkeleton";
@@ -24,9 +23,14 @@ export default function DashboardPageClient() {
     description: f.description ?? null
   }));
 
+  // Обработчик изменения статуса формы
+  const handleStatusChange = () => {
+    // Просто перезагружаем список форм, чтобы обновить статусы
+    refetch();
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-
       {/* Передаём статистику из ответа */}
       <CardStatsWrapper 
         initialStats={userStats} 
@@ -56,7 +60,10 @@ export default function DashboardPageClient() {
             </div>
           </div>
         ) : (
-          <FormCards initialForms={forms} />
+          <FormCards 
+            initialForms={forms} 
+            onStatusChange={handleStatusChange}
+          />
         )}
       </div>
 
