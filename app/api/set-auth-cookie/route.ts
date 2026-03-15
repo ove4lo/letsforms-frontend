@@ -10,32 +10,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid user data" }, { status: 400 });
     }
 
-    // Устанавливаем куки на сервере
-    const cookieStore = cookies();
-    (await cookieStore).set("tg_user_set", "true", {
-      httpOnly: false, 
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7, 
+    const cookieStore = await cookies();
+    
+    // Настройки безопасности
+    const isProd = process.env.NODE_ENV === "production";
+    
+    // 1. Кука с данными пользователя (доступна JS для проверки на клиенте)
+    // Сериализуем объект в строку
+    const userStr = JSON.stringify(fullUser);
+    
+    cookieStore.set("tg_user", userStr, {
+      httpOnly: false, // Важно: false, чтобы клиент мог прочитать через document.cookie
+      secure: isProd,  // В продакшене только HTTPS
+      sameSite: "lax", // Lax безопаснее для редиректов, чем strict
+      maxAge: 60 * 60 * 24 * 7, // 7 дней
       path: "/",
     });
 
-    //  токены отдельно
+    // 2. Access Token (только сервер)
     if (fullUser.access_token) {
-      (await cookieStore).set("access_token", fullUser.access_token, {
-        httpOnly: true, 
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 60 * 60 * 24, 
+      cookieStore.set("access_token", fullUser.access_token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24, // 1 день
         path: "/",
       });
     }
+
+    // 3. Refresh Token (только сервер)
     if (fullUser.refresh_token) {
-      (await cookieStore).set("refresh_token", fullUser.refresh_token, {
+      cookieStore.set("refresh_token", fullUser.refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 60 * 60 * 24 * 30, 
+        secure: isProd,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 30, // 30 дней
         path: "/",
       });
     }

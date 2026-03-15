@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { LoadingCat } from "@/components/ui/loading-cat";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { getCookie } from "@/lib/cookies";
 
 export default function DashboardLayout({
   children,
@@ -11,37 +12,36 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Читаем куки
-    const tgUserRaw = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("tg_user="))
-      ?.split("=")[1];
+    // 1. Читаем куку через функцию
+    const tgUserRaw = getCookie("tg_user");
 
     if (!tgUserRaw) {
-      router.replace("/auth/");
+      sessionStorage.setItem("redirectAfterLogin", pathname);
+      router.replace("/auth");
       return;
     }
 
     try {
-      const decoded = decodeURIComponent(tgUserRaw);
-      const parsed = JSON.parse(decoded);
-      
+      const parsed = JSON.parse(tgUserRaw);
+
       if (!parsed?.id && !parsed?.user_id) {
-        throw new Error("Нет id в данных");
+        throw new Error("Invalid user structure");
       }
       
       setUser(parsed);
     } catch (e) {
-      console.error("[Layout] Auth error", e);
-      router.replace("/auth/");
+      console.error("[Layout] Auth error: Invalid cookie data", e);
+      document.cookie = "tg_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      router.replace("/auth");
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, pathname]);
 
   if (loading) {
     return <LoadingCat message="Проверка доступа..." subMessage="Секундочку" />;

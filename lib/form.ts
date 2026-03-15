@@ -4,11 +4,8 @@ import { GetMyFormsResponse, AdminServerForm, GetResponsesResponse, ServerRespon
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE!;
 
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-
 // Функция для получения Telegram ID
 const getTelegramId = (): string => {
-  // Получаем JSON-строку из куки tg_user (уже декодированную getCookie)
   const tgUserJson = getCookie("tg_user");
   if (!tgUserJson) {
     console.warn("Данные пользователя (tg_user) не найдены в cookies.");
@@ -16,7 +13,6 @@ const getTelegramId = (): string => {
   }
 
   try {
-    // tgUserJson теперь декодированная строка, например, {"id":"1024823538",...}
     const user = JSON.parse(tgUserJson);
     return user.id || user.telegram_id || '';
   } catch (error) {
@@ -25,13 +21,11 @@ const getTelegramId = (): string => {
   }
 };
 
-
 const getHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  // Только один вызов getCookie
   const accessToken = getCookie("access_token");
   
   if (accessToken) {
@@ -45,7 +39,6 @@ let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
 async function refreshToken(): Promise<boolean> {
-  // Предотвращаем множественные параллельные запросы на обновление
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
   }
@@ -190,7 +183,6 @@ export async function getFormByHash(hash: string): Promise<AdminServerForm | nul
 }
 
 // Отправка ответов на форму
-// Типизируем параметры и возвращаемое значение
 export async function submitFormResponses(hash: string, answers: Record<string, any>): Promise<any> {
   try {
     // Получаем tg_id из cookies

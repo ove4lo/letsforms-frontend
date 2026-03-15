@@ -21,9 +21,6 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
-  // можно добавить позже
-  // manifest: "/site.webmanifest",
-  // themeColor: "#ffffff",
 };
 
 export default function RootLayout({

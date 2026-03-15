@@ -1,36 +1,38 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { LoadingCat } from "@/components/LoadingCat";
+import { useRouter } from "next/navigation";
+import { LoadingCat } from "@/components/ui/loading-cat";
+import { getCookie } from "@/lib/cookies";
 
 function AuthCallbackContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Проверяем наличие куки
-    const tgUserRaw = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("tg_user="))
-      ?.split("=")[1];
+    const checkAuth = () => {
+      const tgUserRaw = getCookie("tg_user");
+      
+      if (tgUserRaw) {
+        try {
+          const user = JSON.parse(tgUserRaw);
+          if (user.id || user.user_id) {
+            const redirectPath = sessionStorage.getItem("redirectAfterLogin") || "/";
+            sessionStorage.removeItem("redirectAfterLogin");
+            router.replace(redirectPath);
+            return;
+          }
+        } catch (e) {
+          console.error("Parse error in callback", e);
+        }
+      }
 
-    console.log("Callback: сырое значение tg_user →", tgUserRaw || "нет куки");
+      setTimeout(checkAuth, 500);
+    };
 
-    if (!tgUserRaw) {
-      console.warn("Callback: tg_user не найдена → всё равно редиректим на главную");
-    }
-
-    const redirectPath =
-      sessionStorage.getItem("redirectAfterLogin") || "/";
-    sessionStorage.removeItem("redirectAfterLogin");
-
-    console.log("Callback: редирект на →", redirectPath);
-
-    router.replace(redirectPath);
+    checkAuth();
   }, [router]);
 
-  return <LoadingCat message="Завершаем авторизацию..." />;
+  return <LoadingCat message="Завершаем авторизацию..." subMessage="Telegram подтверждает вход" />;
 }
 
 export default function AuthCallback() {

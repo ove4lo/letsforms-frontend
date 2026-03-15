@@ -1,27 +1,33 @@
-import { cookies } from "next/headers";
+import { getCookie } from "./cookies";
 
 export async function getCurrentUserServer() {
+  const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
-  const tgUser = cookieStore.get("tg_user")?.value || null;
+  const tgUserRaw = cookieStore.get("tg_user")?.value;
 
-  if (tgUser) {
+  if (tgUserRaw) {
     try {
-      return JSON.parse(tgUser);
-    } catch {}
+      return JSON.parse(tgUserRaw);
+    } catch (e) {
+      console.error("Failed to parse tg_user on server", e);
+      return null;
+    }
   }
-
   return null;
 }
 
-// Для клиентских компонентов
 export function getCurrentUserClient() {
   if (typeof window === "undefined") return null;
 
-  const tgUser = localStorage.getItem("tg_user");
-  if (tgUser) {
+  const tgUserRaw = getCookie("tg_user");
+  
+  if (tgUserRaw) {
     try {
-      return JSON.parse(tgUser);
-    } catch {}
+      return JSON.parse(tgUserRaw);
+    } catch (e) {
+      console.error("Failed to parse tg_user on client", e);
+      return null;
+    }
   }
 
   return null;
