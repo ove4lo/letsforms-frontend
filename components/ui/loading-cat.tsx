@@ -53,7 +53,7 @@ export function LoadingCat({
           {subMessage}
         </p>
       </div>
-
+      
       <style jsx>{`
         @keyframes blink {
           0%, 100% { transform: scaleY(1); }
