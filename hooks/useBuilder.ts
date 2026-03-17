@@ -9,7 +9,7 @@ import { FormElementInstance } from "@/components/builder/types";
 import { FormStatus } from "@/types/form";
 import { createNewElement } from "@/components/builder/utils";
 
-export interface UseBuilderReturn {
+interface UseBuilderReturn {
   // Данные
   formData: any;
   loading: boolean;
@@ -62,54 +62,103 @@ export function useBuilder(hash: string): UseBuilderReturn {
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Инициализация данных при загрузке формы
+  // --- ЛОГИКА ЧЕРНОВИКОВ (LocalStorage) ---
+  const storageKey = `draft_form_${hash}`;
+
+  // 1. Загрузка данных (Сервер -> Черновик -> Стейт)
   useEffect(() => {
-    if (formData) {
-      setTitle(formData.title || "Новая форма");
-      setDescription(formData.description || "");
-      setStatus(formData.status);
-
+    if (!loading && formData) {
+      // Данные с сервера
+      const serverTitle = formData.title || "Новая форма";
+      const serverDesc = formData.description || "";
+      const serverStatus = formData.status;
+      
+      let serverElements: FormElementInstance[] = [];
       if (formData.questions && formData.questions.length > 0) {
-        const restored = formData.questions.map((q: any) => {
-          const typeMap: Record<string, string> = {
-            text: "TextField", text_area: "TextareaField", single_choice: "RadioField",
-            select: "SelectField", multiple_choice: "CheckboxField", number: "NumberField",
-            scale: "ScaleField", date: "DateField", info: "ParagraphField",
-          };
-          
-          return {
-            id: q.id.toString(),
-            type: (typeMap[q.type] || "TextField") as any,
-            extraAttributes: {
-              label: q.text || "Без названия",
-              required: q.is_required || false,
-              options: q.options ? (Array.isArray(q.options) ? q.options : q.options.split(",").map((s:string) => s.trim())) : undefined,
-              placeholder: q.placeholder || undefined,
-              min: q.min, max: q.max,
-              min_label: q.min_label, max_label: q.max_label,
-              text: q.text, 
-            },
-          };
-        });
-        setElements(restored);
+        const typeMap: Record<string, string> = {
+          text: "TextField", text_area: "TextareaField", single_choice: "RadioField",
+          select: "SelectField", multiple_choice: "CheckboxField", number: "NumberField",
+          scale: "ScaleField", date: "DateField", info: "ParagraphField",
+        };
+        serverElements = formData.questions.map((q: any) => ({
+          id: q.id.toString(),
+          type: (typeMap[q.type] || "TextField") as any,
+          extraAttributes: {
+            label: q.text || "Без названия",
+            required: q.is_required || false,
+            options: q.options ? (Array.isArray(q.options) ? q.options : q.options.split(",").map((s:string) => s.trim())) : undefined,
+            placeholder: q.placeholder || undefined,
+            min: q.min, max: q.max,
+            min_label: q.min_label, max_label: q.max_label,
+            text: q.text, 
+          },
+        }));
       }
-    }
-  }, [formData]);
 
-  // Сохранение
+      // Проверяем черновик
+      const savedDraft = localStorage.getItem(storageKey);
+      
+      if (savedDraft) {
+        // Если есть черновик, спрашиваем пользователя (через простой confirm для начала, или можно сделать модалку)
+        // Для MVP: если черновик новее 5 минут или просто есть - восстанавливаем тихо, 
+        // но в реальном проекте лучше показывать диалог. 
+        // Здесь реализуем простую логику: если черновик есть, берем его.
+        try {
+          const draft = JSON.parse(savedDraft);
+          console.log("📝 Найден черновик, восстанавливаем...", draft.timestamp);
+          setTitle(draft.title);
+          setDescription(draft.description);
+          setElements(draft.elements);
+          setStatus(serverStatus); // Статус берем с сервера
+          return;
+        } catch (e) {
+          console.error("Ошибка чтения черновика", e);
+          localStorage.removeItem(storageKey);
+        }
+      }
+
+      // Если черновика нет или ошибка - берем данные с сервера
+      setTitle(serverTitle);
+      setDescription(serverDesc);
+      setElements(serverElements);
+      setStatus(serverStatus);
+    }
+  }, [loading, formData, hash]);
+
+  // 2. Автосохранение при изменениях
+  useEffect(() => {
+    if (!loading && formData && title) {
+      // Сохраняем только если данные уже загружены
+      const draft = {
+        title,
+        description,
+        elements,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(storageKey, JSON.stringify(draft));
+    }
+  }, [title, description, elements, loading, formData, hash]);
+
+  // Функция очистки черновика (вызывается после успешного сохранения)
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(storageKey);
+  }, [hash]);
+
+  // Обработчик сохранения на сервер
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await saveFormApi(hash, { title, elements });
-      alert("Форма сохранена!");
-      refetch(); // Обновить данные после сохранения
+      alert("Форма успешно сохранена!");
+      clearDraft(); // Очищаем черновик
+      refetch(); // Обновляем данные с сервера
     } catch (err: any) {
       setErrorMessage(`Ошибка сохранения: ${err.message}`);
       setErrorOpen(true);
     } finally {
       setIsSaving(false);
     }
-  }, [hash, title, elements, refetch]);
+  }, [hash, title, elements, clearDraft, refetch]);
 
   // Смена статуса
   const handleStatusChange = useCallback(async (newStatus: FormStatus) => {
@@ -140,12 +189,11 @@ export function useBuilder(hash: string): UseBuilderReturn {
   }, [hash]);
 
   return {
-    formData, loading, error: loadError,
+    formData, loading, error: loadError, refetch,
     title, description, status, elements,
     selectedElement, isSaving, publishOpen, errorOpen, errorMessage,
     setTitle, setDescription, setElements, setSelectedElement,
     handleSave, handleStatusChange, handlePreview,
     setPublishOpen, setErrorOpen,
-    refetch
   };
 }

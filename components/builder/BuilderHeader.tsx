@@ -11,6 +11,7 @@ interface BuilderHeaderProps {
   status: FormStatus;
   isSaving: boolean;
   hasQuestions: boolean;
+  hasDraft?: boolean;
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
   onSave: () => void;
@@ -19,20 +20,59 @@ interface BuilderHeaderProps {
 }
 
 export function BuilderHeader({
-  title, description, status, isSaving, hasQuestions,
+  title, description, status, isSaving, hasQuestions, hasDraft,
   onTitleChange, onDescriptionChange, onSave, onStatusChange, onPreview
 }: BuilderHeaderProps) {
   return (
     <header className="flex-shrink-0 border-b bg-card/50 backdrop-blur-sm p-4 z-20 relative w-full">
-      <div className="max-w-7xl mx-auto w-full space-y-4">
-        {/* Поля ввода (без изменений) */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
-          <input
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            className="text-2xl font-bold bg-transparent border-b border-transparent hover:border-input focus:border-primary focus:ring-0 outline-none transition px-2 py-1 w-full"
-            placeholder="Название формы"
-          />
+      <div className="max-w-7xl mx-auto w-full">
+        {/* ВЕРХНЯЯ СТРОКА: Название слева, кнопки справа */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          {/* Название слева */}
+          <div className="flex-1 min-w-[200px]">
+            <input
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              className="text-2xl font-bold bg-transparent border-b border-transparent hover:border-input focus:border-primary focus:ring-0 outline-none transition px-2 py-1 w-full"
+              placeholder="Название формы"
+            />
+          </div>
+
+          {/* Кнопки справа */}
+          <div className="flex items-center gap-2">
+            {/* Индикатор черновика (если есть) */}
+            {hasDraft && (
+              <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-md text-sm mr-2">
+                <div className="w-2 h-2 bg-amber-600 rounded-full animate-pulse" />
+                <span>Черновик</span>
+              </div>
+            )}
+
+            <Button variant="outline" size="sm" onClick={onPreview} className="gap-2 whitespace-nowrap">
+              <Eye className="h-4 w-4" /> Предпросмотр
+            </Button>
+            
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={onSave} 
+              disabled={isSaving || !hasQuestions} 
+              className="gap-2 whitespace-nowrap"
+            >
+              <Save className={`h-4 w-4 ${isSaving ? 'animate-spin' : ''}`} />
+              {isSaving ? "Сохранение..." : "Сохранить"}
+            </Button>
+
+            <div className="h-6 w-px bg-border mx-1" />
+
+            <div className="min-w-[200px]">
+              <StatusSelector currentStatus={status} onChange={onStatusChange} disabled={!hasQuestions} />
+            </div>
+          </div>
+        </div>
+
+        {/* НИЖНЯЯ СТРОКА: Описание на всю ширину */}
+        <div className="w-full">
           <Textarea
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
@@ -42,36 +82,14 @@ export function BuilderHeader({
           />
         </div>
 
-        {/* Кнопки */}
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          <Button variant="outline" size="sm" onClick={onPreview} className="gap-2 whitespace-nowrap">
-            <Eye className="h-4 w-4" /> Предпросмотр
-          </Button>
-          
-          {/* КНОПКА СОХРАНИТЬ ТЕПЕРЬ DISABLED, ЕСЛИ НЕТ ВОПРОСОВ */}
-          <Button 
-            variant="default" 
-            size="sm" 
-            onClick={onSave} 
-            disabled={isSaving || !hasQuestions} 
-            className="gap-2 whitespace-nowrap"
-          >
-            <Save className={`h-4 w-4 ${isSaving ? 'animate-spin' : ''}`} />
-            {isSaving ? "Сохранение..." : "Сохранить"}
-          </Button>
-
-          <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
-
-          <div className="flex-1 min-w-[200px]">
-             <StatusSelector currentStatus={status} onChange={onStatusChange} disabled={!hasQuestions} />
-          </div>
-
-          {!hasQuestions && (
+        {/* Предупреждение, если нет вопросов (под описанием) */}
+        {!hasQuestions && (
+          <div className="mt-3">
             <span className="text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-1 rounded-md border border-yellow-200 dark:border-yellow-800 whitespace-nowrap animate-pulse">
               ⚠️ Добавьте вопросы для сохранения
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </header>
   );
