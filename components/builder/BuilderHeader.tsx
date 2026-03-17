@@ -3,7 +3,9 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { StatusSelector, FormStatus } from "@/components/StatusSelector";
-import { Eye, Save } from "lucide-react";
+import { PreviewDialogBtn } from "./PreviewDialogBtn"; 
+import { Save } from "lucide-react";
+import { FormElementInstance } from "./types";
 
 interface BuilderHeaderProps {
   title: string;
@@ -12,16 +14,16 @@ interface BuilderHeaderProps {
   isSaving: boolean;
   hasQuestions: boolean;
   hasDraft?: boolean;
+  elements: FormElementInstance[]; 
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
   onSave: () => void;
   onStatusChange: (s: FormStatus) => void;
-  onPreview: () => void;
 }
 
 export function BuilderHeader({
-  title, description, status, isSaving, hasQuestions, hasDraft,
-  onTitleChange, onDescriptionChange, onSave, onStatusChange, onPreview
+  title, description, status, isSaving, hasQuestions, hasDraft, elements,
+  onTitleChange, onDescriptionChange, onSave, onStatusChange
 }: BuilderHeaderProps) {
   return (
     <header className="flex-shrink-0 border-b bg-card/50 backdrop-blur-sm p-4 z-20 relative w-full">
@@ -40,18 +42,10 @@ export function BuilderHeader({
 
           {/* Кнопки справа */}
           <div className="flex items-center gap-2">
-            {/* Индикатор черновика (если есть) */}
-            {hasDraft && (
-              <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-md text-sm mr-2">
-                <div className="w-2 h-2 bg-amber-600 rounded-full animate-pulse" />
-                <span>Черновик</span>
-              </div>
-            )}
 
-            <Button variant="outline" size="sm" onClick={onPreview} className="gap-2 whitespace-nowrap">
-              <Eye className="h-4 w-4" /> Предпросмотр
-            </Button>
-            
+            <PreviewDialogBtn elements={elements} />
+
+            {/* Кнопка сохранения */}
             <Button 
               variant="default" 
               size="sm" 

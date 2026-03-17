@@ -1,5 +1,4 @@
 "use client";
-
 import { useBuilder } from "@/hooks/useBuilder";
 import { BuilderHeader } from "@/components/builder/BuilderHeader";
 import { DesignerLayout } from "@/components/builder/DesignerLayout";
@@ -33,13 +32,10 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
     setSelectedElement,
     handleSave,
     handleStatusChange,
-    handlePreview,
     setPublishOpen,
     setErrorOpen,
   } = useBuilder(hash);
 
-  // ЛОГИКА ВАЛИДАЦИИ
-  // Проверяем, есть ли в форме поля ввода (вопросы), а не только заголовки/текст
   const hasQuestions = elements.some((el: FormElementInstance) =>
     ![
       "ParagraphField",
@@ -50,15 +46,11 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
     ].includes(el.type)
   );
 
-  // Обертка для сохранения с проверкой валидности
   const handleSaveWithValidation = async () => {
     if (!hasQuestions) {
-      alert("⚠️ Ошибка сохранения:\n\nФорма должна содержать хотя бы один вопрос (поле ввода, чекбокс, выбор и т.д.).\nЗаголовки и текст не считаются вопросами.");
-
+      alert("⚠️ Ошибка сохранения:\n\nФорма должна содержать хотя бы один вопрос.");
       return;
     }
-
-    // Если всё ок — сохраняем
     try {
       await handleSave();
     } catch (e) {
@@ -66,7 +58,6 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
     }
   };
 
-  // Блокировка изменения статуса, если нет вопросов
   const handleStatusChangeWithValidation = async (newStatus: any) => {
     if (!hasQuestions && newStatus === "active") {
       alert("⚠️ Нельзя опубликовать пустую форму. Добавьте вопросы.");
@@ -75,7 +66,6 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
     await handleStatusChange(newStatus);
   };
 
-  // Экраны загрузки и ошибок
   if (loading) {
     return (
       <LoadingCat
@@ -97,23 +87,20 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden overflow-x-hidden bg-background">
-      {/* 1. Шапка с кнопками */}
       <BuilderHeader
         title={title}
         description={description}
         status={status}
         isSaving={isSaving}
-        hasQuestions={hasQuestions} // Передаем флаг валидности
+        hasQuestions={hasQuestions}
+        elements={elements} 
         onTitleChange={setTitle}
         onDescriptionChange={setDescription}
-        onSave={handleSaveWithValidation} // Используем валидирующую функцию
+        onSave={handleSaveWithValidation}
         onStatusChange={handleStatusChangeWithValidation}
-        onPreview={handlePreview}
       />
-
-      {/* 2. Основная рабочая область (Холст + Сайдбар/Панель + Корзина) */}
+      
       <main className="flex-1 flex relative w-full overflow-hidden">
-
         <DesignerLayout
           elements={elements}
           setElements={setElements}
@@ -122,13 +109,12 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
         />
       </main>
 
-      {/* 3. Диалоги (Модалки) */}
       <PublishDialog
         open={publishOpen}
         onOpenChange={setPublishOpen}
         hash={hash}
       />
-
+     
       <ErrorDialog
         open={errorOpen}
         onOpenChange={setErrorOpen}

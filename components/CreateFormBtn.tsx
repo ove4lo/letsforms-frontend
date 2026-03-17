@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation"; // Добавляем useRouter
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ interface CreateFormBtnProps {
 }
 
 export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
+  const router = useRouter(); // Инициализируем роутер
   
   const form = useForm<CreateFormType>({
     resolver: zodResolver(CreateFormSchema),
@@ -50,12 +52,27 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
       console.log("Создаём форму:", values);
       const result = await createForm(values);
       console.log("Форма создана:", result);
+      
       toast.success("Форма успешно создана!");
       form.reset();
-
+      
+      // Закрываем диалог
+      document.body.click(); // Простой способ закрыть диалог
+      
+      // Вызываем onFormCreated если передан
       if (onFormCreated) {
         onFormCreated();
       }
+      
+      // РЕДИРЕКТ на страницу редактирования формы
+      // Предполагаем, что в ответе приходит hash формы
+      if (result && result.hash) {
+        router.push(`/builder/${result.hash}`);
+      } else if (result && result.id) {
+        // Если приходит id, конвертируем в hash или используем как есть
+        router.push(`/builder/${result.id}`);
+      }
+      
     } catch (error: any) {
       console.error("Ошибка создания формы:", error);
       toast.error("Не удалось создать форму. Попробуйте позже.");
