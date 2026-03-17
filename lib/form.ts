@@ -86,7 +86,7 @@ export async function getFormByHash(hash: string): Promise<AdminServerForm | nul
 export async function submitFormResponses(hash: string, answers: Record<string, any>): Promise<any> {
   const tgUserJson = getCookie("tg_user");
   if (!tgUserJson) throw new Error("Пользователь не авторизован");
-  
+
   let tgId: string | null = null;
   try {
     const user = JSON.parse(decodeURIComponent(tgUserJson));
@@ -158,11 +158,39 @@ export async function createForm(data: { name: string; description?: string }): 
   return await res.json();
 }
 
-export async function saveForm(hash: string, data: { title: string; elements: FormElementInstance[] }): Promise<any> {
-  const telegramId = getTelegramId();
-  if (!telegramId) throw new Error('Пользователь не авторизован');
 
-  // 1. Обновляем метаданные формы
+/**
+ * Сохраняет форму и её вопросы на сервере.
+ * Включает валидацию данных перед отправкой.
+ */
+export async function saveForm(
+  hash: string,
+  data: { title: string; elements: FormElementInstance[] }
+): Promise<any> {
+  const telegramId = getTelegramId();
+  if (!telegramId) throw new Error('Пользователь не авторизован (cookies)');
+
+  // Проходим по всем элементам и убеждаемся, что они валидны
+  const validatedElements = data.elements.map((el) => {
+    const attrs = el.extraAttributes || {};
+
+    // Если это поле с вариантами выбора, проверяем наличие опций
+    if (["CheckboxField", "RadioField", "SelectField"].includes(el.type)) {
+      if (!attrs.options || !Array.isArray(attrs.options) || attrs.options.length === 0) {
+        // Если опций нет (пользователь удалил все), возвращаем дефолтные
+        console.warn(`Элемент ${el.id} не имел опций. Установлены значения по умолчанию.`);
+        attrs.options = ["Вариант 1", "Вариант 2"];
+      }
+    }
+
+    // Если нет заголовка/текста, ставим заглушку
+    if (!attrs.label && !attrs.text) {
+      attrs.label = "Поле без названия";
+    }
+
+    return { ...el, extraAttributes: attrs };
+  });
+
   const formRes = await fetch(`${API_BASE}/forms/${hash}/`, {
     method: "PUT",
     headers: getHeaders(),
@@ -176,46 +204,89 @@ export async function saveForm(hash: string, data: { title: string; elements: Fo
   });
 
   if (formRes.status === 401) { handleUnauthorized(); throw new Error("Unauthorized"); }
-  if (!formRes.ok) throw new Error(`Ошибка обновления формы: ${formRes.status}`);
+  if (!formRes.ok) {
+    const text = await formRes.text();
+    throw new Error(`Ошибка обновления формы: ${formRes.status} ${text}`);
+  }
 
-  // 2. Формируем вопросы
-  const questions = data.elements
-    .filter(el => !["SeparatorField", "SpacerField"].includes(el.type))
+  const questions = validatedElements
+    .filter((el) => !["SeparatorField", "SpacerField"].includes(el.type))
     .map((el, index) => {
       const attrs = el.extraAttributes || {};
-      const base = {
+
+      // Базовая структура вопроса
+      const baseQuestion = {
         type: mapClientTypeToServer(el.type),
         order: index + 1,
         text: attrs.label || attrs.text || "Без названия",
         is_required: !!attrs.required,
       };
 
+      // Специфичные поля для разных типов
       switch (el.type) {
-        case "TextField": case "TextareaField":
-          return { ...base, placeholder: attrs.placeholder || null };
+        case "TextField":
+        case "TextareaField":
+          return {
+            ...baseQuestion,
+            placeholder: attrs.placeholder || null,
+          };
+
         case "NumberField":
-          return { ...base, min: attrs.min ?? null, max: attrs.max ?? null, placeholder: attrs.placeholder || null };
+          return {
+            ...baseQuestion,
+            min: attrs.min ?? null,
+            max: attrs.max ?? null,
+            placeholder: attrs.placeholder || null,
+          };
+
         case "ScaleField":
-          return { ...base, min: attrs.min || 1, max: attrs.max || 10, min_label: attrs.minLabel || null, max_label: attrs.maxLabel || null };
+          return {
+            ...baseQuestion,
+            min: attrs.min || 1,
+            max: attrs.max || 10,
+            min_label: attrs.min_label || null,
+            max_label: attrs.max_label || null,
+          };
+
         case "ParagraphField":
-          return { ...base, text: attrs.text || "" };
-        case "RadioField": case "CheckboxField": case "SelectField":
-          return { ...base, options: attrs.options || null };
+          return {
+            ...baseQuestion,
+            text: attrs.text || "",
+            is_required: false,
+          };
+
+        case "RadioField":
+        case "CheckboxField":
+        case "SelectField":
+          return {
+            ...baseQuestion,
+            options: attrs.options || [],
+          };
+
         default:
-          return base;
+          return baseQuestion;
       }
     });
 
-  // 3. Заменяем вопросы
+  console.log("📤 Отправляем вопросы на сервер:", questions);
+
+  // --- 4. ЗАМЕНА ВОПРОСОВ НА СЕРВЕРЕ ---
   const qRes = await fetch(`${API_BASE}/forms/${hash}/replace_questions/`, {
     method: "PUT",
     headers: getHeaders(),
-    body: JSON.stringify({ tg_id: telegramId, questions }),
+    body: JSON.stringify({
+      tg_id: telegramId,
+      questions: questions,
+    }),
   });
 
   if (qRes.status === 401) { handleUnauthorized(); throw new Error("Unauthorized"); }
-  if (!qRes.ok) throw new Error(`Ошибка вопросов: ${qRes.status}`);
+  if (!qRes.ok) {
+    const text = await qRes.text();
+    throw new Error(`Ошибка сохранения вопросов: ${qRes.status} ${text}`);
+  }
 
+  console.log("✅ Форма успешно сохранена!");
   return await qRes.json();
 }
 

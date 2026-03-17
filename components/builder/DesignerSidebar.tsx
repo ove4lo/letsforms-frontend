@@ -3,67 +3,97 @@
 import { FormElements } from "./elements/FormElements";
 import { Separator } from "@/components/ui/separator";
 import { useDraggable } from "@dnd-kit/core";
+import { FormElementInstance, ElementsType } from "./types";
 
-type ElementType = keyof typeof FormElements;  
-
-const layoutElements = [
-  // { type: "TitleField" as const, label: "Заголовок" },
-  // { type: "SubTitleField" as const, label: "Подзаголовок" },
-  { type: "ParagraphField" as const, label: "Текст" },
-  // { type: "SeparatorField" as const, label: "Разделитель" },
-  // { type: "SpacerField" as const, label: "Отступ" },
+const layoutElements: ElementsType[] = ["ParagraphField"];
+const formElements: ElementsType[] = [
+  "TextField", "TextareaField", "NumberField", "DateField",
+  "SelectField", "CheckboxField", "RadioField", "ScaleField",
 ];
 
-const formElements = [
-  { type: "TextField" as const, label: "Текст" },
-  { type: "TextareaField" as const, label: "Текстовая область" },
-  { type: "NumberField" as const, label: "Число" },
-  { type: "DateField" as const, label: "Дата" },
-  { type: "SelectField" as const, label: "Выпадающий список" },
-  { type: "CheckboxField" as const, label: "Чекбоксы" },
-  { type: "RadioField" as const, label: "Радиокнопки" },
-  { type: "ScaleField" as const, label: "Шкала 1-10" },
-];
+const getDefaultAttributes = (type: ElementsType): Record<string, any> => {
+  switch (type) {
+    case "TextField": case "TextareaField":
+      return { label: "Новое текстовое поле", required: false, placeholder: "Введите текст..." };
+    case "NumberField":
+      return { label: "Числовое поле", required: false, placeholder: "0" };
+    case "DateField":
+      return { label: "Выберите дату", required: false };
+    case "CheckboxField": case "RadioField": case "SelectField":
+      return { label: "Выберите вариант", required: false, options: ["Вариант 1", "Вариант 2", "Вариант 3"] };
+    case "ScaleField":
+      return { label: "Оцените от 1 до 10", required: false, min: 1, max: 10 };
+    case "ParagraphField":
+      return { text: "Информационный блок." };
+    case "TitleField": return { text: "Заголовок" };
+    case "SubTitleField": return { text: "Подзаголовок" };
+    default: return {};
+  }
+};
 
-function SidebarBtnElement({ type }: { type: ElementType }) {
+function SidebarBtnElement({ type }: { type: ElementsType }) {
   const DesignerElement = FormElements[type].designerComponent;
+  
+  // Создаем превью с дефолтными данными
+  const previewInstance: FormElementInstance = {
+    id: `preview-${type}`,
+    type,
+    extraAttributes: getDefaultAttributes(type),
+  };
 
-  const draggable = useDraggable({
+  const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: `sidebar-${type}`,
-    data: { type, isDesignerBtnElement: true },
+    data: {
+      type,
+      isDesignerBtnElement: true,
+      defaultAttributes: getDefaultAttributes(type),
+    },
   });
+
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   return (
     <div
-      ref={draggable.setNodeRef}
-      {...draggable.listeners}
-      {...draggable.attributes}
-      className="border rounded-lg p-4 bg-background hover:bg-muted/50 cursor-grab active:cursor-grabbing transition"
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`
+        relative border rounded-lg p-4 bg-background 
+        hover:bg-muted/50 hover:border-primary/50 
+        cursor-grab active:cursor-grabbing 
+        transition-all duration-200 shadow-sm hover:shadow-md
+        group select-none touch-none
+        ${isDragging ? 'ring-2 ring-primary ring-offset-2 z-50' : ''}
+      `}
     >
-      <DesignerElement elementInstance={{ id: "temp", type }} />
+      <DesignerElement elementInstance={previewInstance} />
+      
+      <div className="absolute inset-0 border-2 border-transparent group-hover:border-primary/20 rounded-lg pointer-events-none transition-colors" />
     </div>
   );
 }
 
 export function DesignerSidebar() {
   return (
-    <aside className="w-80 h-full border-l bg-card p-6 overflow-y-auto">
-      <h2 className="text-xl font-semibold mb-4">Элементы</h2>
-
-      <p className="text-sm text-muted-foreground mb-2">Оформление</p>
-      <div className="grid grid-cols-1 gap-3 mb-6">
-        {layoutElements.map((el) => (
-          <SidebarBtnElement key={el.type} type={el.type} />
-        ))}
+    <aside className="w-80 h-full border-l bg-card flex-shrink-0 flex flex-col overflow-hidden z-10">
+      <div className="p-6 border-b flex-shrink-0">
+        <h2 className="text-xl font-bold tracking-tight">Элементы</h2>
+        <p className="text-sm text-muted-foreground mt-1">Перетащите в рабочую область</p>
       </div>
-
-      <Separator className="my-6" />
-
-      <p className="text-sm text-muted-foreground mb-2">Поля формы</p>
-      <div className="grid grid-cols-1 gap-3">
-        {formElements.map((el) => (
-          <SidebarBtnElement key={el.type} type={el.type} />
-        ))}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Оформление</p>
+          <div className="grid grid-cols-1 gap-3">{layoutElements.map((t) => <SidebarBtnElement key={t} type={t} />)}</div>
+        </div>
+        <Separator />
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Поля формы</p>
+          <div className="grid grid-cols-1 gap-3">{formElements.map((t) => <SidebarBtnElement key={t} type={t} />)}</div>
+        </div>
       </div>
     </aside>
   );
