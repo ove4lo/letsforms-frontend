@@ -4,13 +4,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { StatusSelector, FormStatus } from "@/components/StatusSelector";
 import { PreviewDialogBtn } from "./PreviewDialogBtn";
-import { Save, Plus } from "lucide-react";
+import { Save } from "lucide-react";
 import { FormElementInstance } from "./types";
 import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { DesignerSidebar } from "./DesignerSidebar";
 import { cn } from "@/lib/utils";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface BuilderHeaderProps {
   title: string;
@@ -27,11 +24,19 @@ interface BuilderHeaderProps {
 }
 
 export function BuilderHeader({
-  title, description, status, isSaving, hasQuestions, hasDraft, elements,
-  onTitleChange, onDescriptionChange, onSave, onStatusChange
+  title,
+  description,
+  status,
+  isSaving,
+  hasQuestions,
+  hasDraft,
+  elements,
+  onTitleChange,
+  onDescriptionChange,
+  onSave,
+  onStatusChange,
 }: BuilderHeaderProps) {
   const [isMobile, setIsMobile] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -75,7 +80,7 @@ export function BuilderHeader({
           />
         </div>
 
-        {/* СТРОКА 3: Все кнопки в одной строке, включая статус */}
+        {/* СТРОКА 3: Все кнопки в одной строке */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1">
           {/* Предпросмотр */}
           <PreviewDialogBtn elements={elements} isMobile={isMobile} />
@@ -95,7 +100,7 @@ export function BuilderHeader({
             {isSaving ? "Сохранение..." : "Сохранить"}
           </Button>
 
-          {/* Статус - всегда здесь, в одной строке! */}
+          {/* Статус */}
           <div className={cn(
             "min-w-[140px] sm:min-w-[180px]",
             isMobile && "flex-1"
@@ -107,39 +112,13 @@ export function BuilderHeader({
             />
           </div>
 
-          {/* Кнопка открытия сайдбара */}
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "gap-2 rounded-full",
-                  isMobile ? "px-3" : "px-4"
-                )}
-                title="Добавить элементы"
-              >
-                <Plus className="h-4 w-4" />
-                {!isMobile && "Элементы"}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] sm:w-[400px] p-0">
-              <VisuallyHidden>
-                <SheetTitle>Панель элементов</SheetTitle>
-              </VisuallyHidden>
-              <DesignerSidebar />
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        {/* Предупреждение, если нет вопросов */}
-        {!hasQuestions && (
-          <div className="pt-2">
-            <span className="text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1.5 rounded-full border border-yellow-200 dark:border-yellow-800 inline-flex items-center gap-1 animate-pulse">
+          {/* Предупреждение, если нет вопросов */}
+          {!hasQuestions && (
+            <span className="text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1.5 rounded-full border border-yellow-200 dark:border-yellow-800 inline-flex items-center gap-1">
               ⚠️ Добавьте вопросы для сохранения
             </span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </header>
   );

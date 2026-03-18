@@ -5,6 +5,7 @@ import { FormElementInstance } from "./types";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 type Props = {
   element: FormElementInstance;
@@ -24,7 +25,10 @@ export function PropertiesPanel({ element, updateElement, closePanel }: Props) {
             variant="ghost"
             size="icon"
             onClick={closePanel}
-            className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950/30 transition-all"
+            className={cn(
+              "h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950/30 transition-all",
+              "text-muted-foreground"
+            )}
             title="Закрыть"
           >
             <X className="h-4 w-4 sm:h-5 sm:w-5" />

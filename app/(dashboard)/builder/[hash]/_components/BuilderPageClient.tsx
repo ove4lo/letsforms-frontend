@@ -87,25 +87,23 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden overflow-x-hidden bg-background">
-      <BuilderHeader
-        title={title}
-        description={description}
-        status={status}
-        isSaving={isSaving}
-        hasQuestions={hasQuestions}
-        elements={elements} 
-        onTitleChange={setTitle}
-        onDescriptionChange={setDescription}
-        onSave={handleSaveWithValidation}
-        onStatusChange={handleStatusChangeWithValidation}
-      />
-      
       <main className="flex-1 flex relative w-full overflow-hidden">
         <DesignerLayout
+          // Пропсы для элементов формы
           elements={elements}
           setElements={setElements}
           selectedElement={selectedElement}
           setSelectedElement={setSelectedElement}
+          // Пропсы для хедера
+          title={title}
+          description={description}
+          status={status}
+          isSaving={isSaving}
+          hasQuestions={hasQuestions}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onSave={handleSaveWithValidation}
+          onStatusChange={handleStatusChangeWithValidation}
         />
       </main>
 

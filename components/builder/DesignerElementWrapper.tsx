@@ -54,6 +54,12 @@ export function DesignerElementWrapper({ element, onRemove, onSelect, isSelected
     transition: sortable.transition,
   };
 
+  // Отдельный обработчик для клика по элементу (не по иконке захвата)
+  const handleElementClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect();
+  };
+
   return (
     <div ref={sortable.setNodeRef} style={style} className="relative group mb-4 w-full">
       
@@ -73,31 +79,32 @@ export function DesignerElementWrapper({ element, onRemove, onSelect, isSelected
 
       {/* САМ ЭЛЕМЕНТ */}
       <div
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect();
-        }}
         className={cn(
-          "relative p-6 bg-card rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md w-full",
+          "relative p-6 bg-card rounded-xl border-2 transition-all shadow-sm hover:shadow-md w-full",
           isSelected 
             ? "border-blue-500 ring-2 ring-blue-500/20" 
             : "border-transparent hover:border-muted"
         )}
-        {...sortable.attributes}
-        {...sortable.listeners}
       >
-        {/* Иконка захвата */}
-        <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground pointer-events-none">
+        {/* Иконка захвата - ТОЛЬКО для drag & drop */}
+        <div
+          className="absolute top-2 left-2 text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
+          {...sortable.attributes}
+          {...sortable.listeners}
+        >
           <GripVertical className="h-5 w-5" />
         </div>
 
-        <DesignerElement elementInstance={element} />
+        {/* Контент элемента - кликабельный для выбора */}
+        <div onClick={handleElementClick} className="cursor-pointer">
+          <DesignerElement elementInstance={element} />
+        </div>
 
         {/* Кнопка удаления */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 transition-all"
+          className="absolute top-2 right-2 text-muted-foreground hover:bg-red-100 hover:text-red-600 transition-all"
           onClick={(e) => {
             e.stopPropagation();
             onRemove(id);
