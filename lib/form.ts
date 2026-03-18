@@ -88,32 +88,75 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
   if (!tgUserJson) throw new Error("Пользователь не авторизован");
 
   let tgId: string | null = null;
+  
   try {
     const user = JSON.parse(decodeURIComponent(tgUserJson));
     tgId = user.id || user.telegram_id;
-  } catch { throw new Error("Ошибка парсинга пользователя"); }
+    console.log("👤 ID пользователя:", tgId);
+  } catch {
+    throw new Error("Ошибка парсинга пользователя");
+  }
 
   if (!tgId) throw new Error("ID пользователя не найден");
 
-  const res = await fetch(`${API_BASE}/forms/${hash}/submit/`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({
-      tg_id: tgId,
-      responses: Object.entries(answers).map(([qId, ans]) => ({
-        question_id: Number(qId),
-        answer: ans ?? null,
-      })),
-    }),
-  });
-
-  if (res.status === 401) { handleUnauthorized(); throw new Error("Unauthorized"); }
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "Ошибка отправки");
+  // Получаем токен из отдельной куки
+  const accessToken = getCookie("access_token");
+  console.log("🔑 Токен:", accessToken ? "есть" : "нет");
+  
+  if (!accessToken) {
+    throw new Error("Токен авторизации не найден");
   }
 
-  return await res.json();
+  // Преобразуем answers в нужный формат
+  const responses = Object.entries(answers).map(([qId, ans]) => ({
+    question_id: Number(qId),
+    answer: ans ?? null,
+  }));
+
+  console.log("📤 Хеш формы:", hash);
+  console.log("📤 Отправляем ответы:", {
+    tg_id: tgId,
+    responses_count: responses.length
+  });
+
+  const url = `${API_BASE}/forms/${hash}/submit/`;
+  console.log("📤 URL:", url);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        tg_id: tgId,
+        responses: responses,
+      }),
+    });
+
+    console.log("📥 Статус ответа:", res.status);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("❌ Ошибка сервера:", errorText);
+      
+      // Если 401 - пробуем обновить токен или перенаправить на авторизацию
+      if (res.status === 401) {
+        handleUnauthorized();
+      }
+      
+      throw new Error(`Ошибка отправки: ${res.status} ${errorText}`);
+    }
+
+    const data = await res.json();
+    console.log("✅ Ответы успешно отправлены:", data);
+    return data;
+
+  } catch (error) {
+    console.error("❌ Ошибка при отправке формы:", error);
+    throw error;
+  }
 }
 
 export async function getResponsesByHash(hash: string): Promise<GetResponsesResponse> {

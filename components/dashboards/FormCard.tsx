@@ -28,7 +28,6 @@ export function FormCard({
   description,
   visit_count = 0,
   response_count = 0,
-  conversion_rate = 0,
   questions_count = 0,
   created_at,
   status: initialStatus,
@@ -58,14 +57,9 @@ export function FormCard({
     setIsUpdating(true);
     
     try {
-      // Сначала открываем диалог
       setPublishOpen(true);
-      
-      // Меняем статус локально
       setLocalStatus("active");
-      
       await updateFormStatus(hash, "active");
-      
     } catch (error) {
       console.error("Ошибка публикации формы:", error);
       alert("Не удалось опубликовать форму. Попробуйте позже.");
@@ -119,23 +113,20 @@ export function FormCard({
 
   return (
     <Card
-      className="rounded-xl border bg-card/95 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer
-        border-blue-200 dark:border-transparent
-        ring-1 ring-blue-300/20 dark:ring-transparent
-        hover:ring-blue-500/50 dark:hover:ring-blue-400/50"
+      className="rounded-xl border bg-card/95 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
       onClick={handleCardClick}
     >
-      <CardContent className="p-5 relative">
+      <CardContent className="p-4 relative">
         {showTooltip && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg shadow-lg p-3 min-w-[250px] text-center">
-            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-              ⚠️ Добавьте хотя бы один вопрос, чтобы опубликовать форму
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg shadow-lg p-2 min-w-[220px] text-center">
+            <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
+              ⚠️ Добавьте хотя бы один вопрос
             </p>
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-2">
-          <Badge variant={statusInfo.variant}>
+        <div className="flex items-center justify-between mb-1.5">
+          <Badge variant={statusInfo.variant} className="text-xs px-2 py-0.5">
             {statusInfo.label}
           </Badge>
           <span className="text-xs text-muted-foreground">
@@ -143,59 +134,59 @@ export function FormCard({
           </span>
         </div>
 
-        <h3 className="text-lg font-semibold line-clamp-2 mb-2">
+        <h3 className="text-base font-semibold line-clamp-1 mb-1">
           {title}
         </h3>
 
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+        <p className="text-xs text-muted-foreground line-clamp-1 mb-3">
           {description || "Без описания"}
         </p>
 
-        <Separator className="my-4" />
+        <Separator className="my-3" />
 
-        <div className="grid grid-cols-2 gap-4 text-center mb-4">
+        <div className="grid grid-cols-2 gap-2 text-center mb-3">
           <div>
-            <p className="text-muted-foreground text-xs">Посещений</p>
-            <p className="text-xl font-bold">
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Посещений</p>
+            <p className="text-sm font-bold">
               {visit_count?.toLocaleString("ru-RU") || 0}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">Ответов</p>
-            <p className="text-xl font-bold">
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Ответов</p>
+            <p className="text-sm font-bold">
               {response_count?.toLocaleString("ru-RU") || 0}
             </p>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <Button
-            className="flex-1"
+            className="flex-1 h-8 text-xs"
             size="sm"
             onClick={handleEditClick}
             disabled={isUpdating}
           >
-            <Edit className="mr-2 h-4 w-4" />
+            <Edit className="mr-1.5 h-3.5 w-3.5" />
             Редактировать
           </Button>
 
           <Button
             variant="outline"
             size="sm"
+            className="h-8 w-8 p-0"
             onClick={handleShareClick}
             disabled={isUpdating}
-            className={isUpdating ? "opacity-50 cursor-wait" : ""}
             title={
               !hasQuestions 
-                ? "Сначала добавьте вопросы в редакторе" 
+                ? "Сначала добавьте вопросы" 
                 : isUpdating
                   ? "Публикация..."
                   : localStatus === "active"
-                    ? "Поделиться формой"
-                    : "Опубликовать форму"
+                    ? "Поделиться"
+                    : "Опубликовать"
             }
           >
-            <Share2 className="h-4 w-4" />
+            <Share2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </CardContent>

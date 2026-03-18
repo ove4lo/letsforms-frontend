@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation"; // Добавляем useRouter
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +37,7 @@ interface CreateFormBtnProps {
 }
 
 export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
-  const router = useRouter(); // Инициализируем роутер
+  const router = useRouter();
   
   const form = useForm<CreateFormType>({
     resolver: zodResolver(CreateFormSchema),
@@ -56,20 +56,15 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
       toast.success("Форма успешно создана!");
       form.reset();
       
-      // Закрываем диалог
-      document.body.click(); // Простой способ закрыть диалог
+      document.body.click();
       
-      // Вызываем onFormCreated если передан
       if (onFormCreated) {
         onFormCreated();
       }
       
-      // РЕДИРЕКТ на страницу редактирования формы
-      // Предполагаем, что в ответе приходит hash формы
       if (result && result.hash) {
         router.push(`/builder/${result.hash}`);
       } else if (result && result.id) {
-        // Если приходит id, конвертируем в hash или используем как есть
         router.push(`/builder/${result.id}`);
       }
       
@@ -86,10 +81,10 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            className="rounded-xl border-2 border-dashed border-primary/20 h-full min-h-64 w-full flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 hover:shadow-lg transition-all group"
+            className="rounded-xl border-2 border-dashed border-primary/20 h-48 w-full flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 hover:shadow-md transition-all group"
           >
-            <BsFileEarmarkPlus className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors mb-4" />
-            <p className="text-lg font-semibold text-muted-foreground group-hover:text-primary">
+            <BsFileEarmarkPlus className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors mb-3" />
+            <p className="text-base font-semibold text-muted-foreground group-hover:text-primary">
               Создать новую форму
             </p>
           </Button>
@@ -97,8 +92,8 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
 
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Создать форму</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg">Создать форму</DialogTitle>
+            <DialogDescription className="text-sm">
               Создайте новую форму, чтобы начать собирать ответы
             </DialogDescription>
           </DialogHeader>
@@ -110,11 +105,15 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Название *</FormLabel>
+                    <FormLabel className="text-sm">Название *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Например: Опрос удовлетворённости" {...field} />
+                      <Input 
+                        className="h-9 text-sm" 
+                        placeholder="Например: Опрос удовлетворённости" 
+                        {...field} 
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
@@ -124,24 +123,25 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Описание</FormLabel>
+                    <FormLabel className="text-sm">Описание</FormLabel>
                     <FormControl>
                       <Textarea
-                        rows={4}
+                        rows={3}
+                        className="text-sm"
                         placeholder="Необязательно. Краткое описание формы..."
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
 
-              <DialogFooter className="mt-6">
+              <DialogFooter className="mt-4">
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className="w-full"
+                  className="w-full h-9 text-sm"
                 >
                   {form.formState.isSubmitting ? (
                     <>
