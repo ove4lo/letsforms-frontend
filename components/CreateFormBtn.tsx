@@ -81,9 +81,9 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
         <DialogTrigger asChild>
           <Button
             variant="outline"
-            className="rounded-xl border-2 border-dashed border-primary/20 h-48 w-full flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 hover:shadow-md transition-all group"
+            className="rounded-xl border-2 border-dashed border-primary/20 h-65 w-full flex flex-col items-center justify-center hover:border-primary hover:bg-primary/5 hover:shadow-md transition-all group p-6"
           >
-            <BsFileEarmarkPlus className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors mb-3" />
+            <BsFileEarmarkPlus className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors mb-4" />
             <p className="text-base font-semibold text-muted-foreground group-hover:text-primary">
               Создать новую форму
             </p>

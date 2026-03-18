@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 interface LoadingCatProps {
   message?: string;
@@ -11,6 +11,28 @@ export function LoadingCat({
   message = "Загрузка...", 
   subMessage = "Пожалуйста, подождите" 
 }: LoadingCatProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center gap-8 p-4">
+        <div className="w-32 h-32 rounded-full border-8 border-blue-200 dark:border-blue-900/50 border-t-8 border-t-blue-500 dark:border-t-blue-400 animate-spin" />
+        <div className="text-center space-y-2">
+          <p className="text-2xl font-semibold text-foreground animate-pulse">
+            {message}
+          </p>
+          <p className="text-muted-foreground">
+            {subMessage}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center gap-8 p-4">
       {/* Контейнер котика */}
@@ -34,8 +56,14 @@ export function LoadingCat({
             <div className="w-20 h-20 bg-blue-100 dark:bg-blue-950 rounded-full flex items-center justify-center shadow-sm relative z-10">
               {/* Глазки */}
               <div className="flex gap-5">
-                <div className="w-3 h-5 bg-foreground rounded-full animate-blink" style={{ animationDelay: '0s' }} />
-                <div className="w-3 h-5 bg-foreground rounded-full animate-blink" style={{ animationDelay: '0.3s' }} />
+                <div 
+                  className="w-3 h-5 bg-foreground rounded-full animate-[blink_4s_infinite]" 
+                  style={{ animationDelay: '0s' }} 
+                />
+                <div 
+                  className="w-3 h-5 bg-foreground rounded-full animate-[blink_4s_infinite]" 
+                  style={{ animationDelay: '0.3s' }} 
+                />
               </div>
 
               {/* Носик */}
@@ -58,9 +86,6 @@ export function LoadingCat({
         @keyframes blink {
           0%, 100% { transform: scaleY(1); }
           50% { transform: scaleY(0.1); }
-        }
-        .animate-blink {
-          animation: blink 4s infinite;
         }
       `}</style>
     </div>

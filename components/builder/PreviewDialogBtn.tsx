@@ -12,20 +12,30 @@ import {
 import { FormElementInstance } from "./types";
 import { FormElements } from "./elements/FormElements";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   elements: FormElementInstance[];
+  isMobile?: boolean;
 };
 
-export function PreviewDialogBtn({ elements }: Props) {
+export function PreviewDialogBtn({ elements, isMobile }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button 
+          variant="outline" 
+          size={isMobile ? "icon" : "sm"}
+          className={cn(
+            "rounded-full",
+            isMobile ? "h-8 w-8" : "h-9 px-4 gap-2"
+          )}
+          title="Предпросмотр"
+        >
           <Eye className="h-4 w-4" />
-          Превью
+          {!isMobile && "Предпросмотр"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">

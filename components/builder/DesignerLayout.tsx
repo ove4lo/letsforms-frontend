@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -19,6 +19,11 @@ import { EmptyDroppable } from "./EmptyDroppable";
 import { FormElements } from "./elements/FormElements";
 import { FormElementInstance } from "./types";
 import { createNewElement } from "./utils";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Settings, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface DesignerLayoutProps {
   elements: FormElementInstance[];
@@ -35,7 +40,26 @@ export function DesignerLayout({
 }: DesignerLayoutProps) {
   const [draggedElement, setDraggedElement] = useState<FormElementInstance | null>(null);
   const [isDraggingNew, setIsDraggingNew] = useState(false);
-  
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && selectedElement) {
+      setSidebarOpen(false);
+      setPropertiesOpen(true);
+    }
+  }, [selectedElement, isMobile]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { 
       activationConstraint: { distance: 8 } 
@@ -71,7 +95,6 @@ export function DesignerLayout({
       overId: over?.id,
     });
 
-    // 1. УДАЛЕНИЕ (Корзина)
     if (over && over.id === "trash-zone") {
       console.log("🗑️ Удаляем элемент в корзину:", active.id);
       
@@ -92,7 +115,6 @@ export function DesignerLayout({
     
     if (!over) return;
 
-    // 2. ДОБАВЛЕНИЕ НОВОГО ЭЛЕМЕНТА
     if (isDraggingNew && draggedElement) {
       let newIndex: number = elements.length;
 
@@ -117,7 +139,6 @@ export function DesignerLayout({
       return;
     }
 
-    // 3. ПЕРЕМЕЩЕНИЕ СУЩЕСТВУЮЩЕГО ЭЛЕМЕНТА
     if (!isDraggingNew) {
       const activeId = active.id as string;
       const overIdStr = String(over.id);
@@ -157,9 +178,56 @@ export function DesignerLayout({
     >
       <div className="flex-1 flex relative w-full overflow-hidden bg-background">
         
+        {/* Мобильные кнопки */}
+        {isMobile && (
+          <div className="absolute bottom-6 right-4 z-50 flex flex-col gap-3">
+            {/* Кнопка добавления элементов */}
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button size="icon" className="h-12 w-12 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700">
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[260px] p-0">
+                <VisuallyHidden>
+                  <SheetTitle>Панель элементов</SheetTitle>
+                </VisuallyHidden>
+                <DesignerSidebar />
+              </SheetContent>
+            </Sheet>
+
+            {/* Кнопка свойств (только если выбран элемент) */}
+            {selectedElement && (
+              <Sheet open={propertiesOpen} onOpenChange={setPropertiesOpen}>
+                <SheetTrigger asChild>
+                  <Button size="icon" variant="secondary" className="h-12 w-12 rounded-full shadow-lg">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[260px] p-0">
+                  <VisuallyHidden>
+                    <SheetTitle>Панель свойств</SheetTitle>
+                  </VisuallyHidden>
+                  <PropertiesPanel
+                    element={selectedElement}
+                    updateElement={updateElement}
+                    closePanel={() => {
+                      setPropertiesOpen(false);
+                      setSelectedElement(null);
+                    }}
+                  />
+                </SheetContent>
+              </Sheet>
+            )}
+          </div>
+        )}
+        
         {/* ХОЛСТ */}
-        <div className="flex-1 p-4 sm:p-8 overflow-auto overflow-x-hidden bg-muted/10 relative h-full w-full">
-          <div className="w-full max-w-4xl mx-auto min-h-[calc(100vh-12rem)] pb-32">
+        <div className={cn(
+          "flex-1 p-4 overflow-auto overflow-x-hidden bg-muted/10 relative h-full w-full",
+          isMobile && "pb-24"
+        )}>
+          <div className="w-full max-w-4xl mx-auto min-h-[calc(100vh-12rem)] pb-16">
             <SortableContext 
               items={elements.map((e) => e.id)} 
               strategy={verticalListSortingStrategy}
@@ -167,7 +235,7 @@ export function DesignerLayout({
               {elements.length === 0 ? (
                 <EmptyDroppable />
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {elements.map((el) => (
                     <DesignerElementWrapper
                       key={el.id}
@@ -187,18 +255,20 @@ export function DesignerLayout({
           </div>
         </div>
 
-        {/* САЙДБАР */}
-        <div className="flex-shrink-0 h-full border-l bg-card transition-all duration-300 z-10">
-          {selectedElement ? (
-            <PropertiesPanel
-              element={selectedElement}
-              updateElement={updateElement}
-              closePanel={() => setSelectedElement(null)}
-            />
-          ) : (
-            <DesignerSidebar />
-          )}
-        </div>
+        {/* ДЕСКТОПНЫЙ САЙДБАР */}
+        {!isMobile && (
+          <div className="flex-shrink-0 h-full border-l bg-card transition-all duration-300 z-10">
+            {selectedElement ? (
+              <PropertiesPanel
+                element={selectedElement}
+                updateElement={updateElement}
+                closePanel={() => setSelectedElement(null)}
+              />
+            ) : (
+              <DesignerSidebar />
+            )}
+          </div>
+        )}
 
         {/* КОРЗИНА */}
         <TrashZone isDragging={!!draggedElement} />
