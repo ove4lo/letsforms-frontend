@@ -5,7 +5,6 @@ import { DesignerLayout } from "@/components/builder/DesignerLayout";
 import { PublishDialog } from "@/components/PublishDialog";
 import { ErrorDialog } from "@/components/ErrorDialog";
 import { LoadingCat } from "@/components/ui/loading-cat";
-import { PageError } from "@/components/ui/page-error";
 import { FormElementInstance } from "@/components/builder/types";
 
 interface BuilderClientProps {
@@ -66,6 +65,7 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
     await handleStatusChange(newStatus);
   };
 
+  // 1. Загрузка
   if (loading) {
     return (
       <LoadingCat
@@ -77,14 +77,16 @@ export default function BuilderPageClient({ hash }: BuilderClientProps) {
 
   if (error || !hash) {
     return (
-      <PageError
-        title="Ошибка"
-        message={error || "Форма не найдена"}
-        onRetry={refetch}
-      />
+      <div className="flex items-center justify-center h-screen w-full">
+        <LoadingCat 
+          message="Проверка доступа..." 
+          subMessage="Перенаправляем на вход" 
+        />
+      </div>
     );
   }
 
+  // 3. Рендер конструктора
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden overflow-x-hidden bg-background">
       <main className="flex-1 flex relative w-full overflow-hidden">

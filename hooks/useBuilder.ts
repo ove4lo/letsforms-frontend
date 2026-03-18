@@ -105,7 +105,6 @@ export function useBuilder(hash: string): UseBuilderReturn {
         // Здесь реализуем простую логику: если черновик есть, берем его.
         try {
           const draft = JSON.parse(savedDraft);
-          console.log("📝 Найден черновик, восстанавливаем...", draft.timestamp);
           setTitle(draft.title);
           setDescription(draft.description);
           setElements(draft.elements);

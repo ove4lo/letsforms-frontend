@@ -50,7 +50,6 @@ export function DesignerLayout({
   setElements,
   selectedElement,
   setSelectedElement,
-  // Пропсы для хедера
   title,
   description,
   status,
@@ -92,7 +91,6 @@ export function DesignerLayout({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    console.log("Drag start:", active.id);
 
     if (active.data.current?.isDesignerBtnElement) {
       const type = active.data.current.type;
@@ -107,20 +105,10 @@ export function DesignerLayout({
     }
   };
 
-  const handleDragOver = (event: any) => {
-    console.log("Drag over:", event.over?.id);
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    console.log("Drag ended:", {
-      activeId: active.id,
-      overId: over?.id,
-    });
-
     if (over && over.id === "trash-zone") {
-      console.log("🗑️ Удаляем элемент в корзину:", active.id);
 
       const newElements = elements.filter((el) => el.id !== active.id);
       setElements(newElements);
@@ -197,7 +185,6 @@ export function DesignerLayout({
       sensors={sensors}
       collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-background">

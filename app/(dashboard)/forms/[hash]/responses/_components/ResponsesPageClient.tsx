@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getResponsesByHash } from "@/lib/form";
-import { LoadingCat } from "@/components/LoadingCat";
+import { LoadingCat } from "@/components/ui/loading-cat";
 import { ServerResponse } from "@/types/form";
 
 interface GroupedResponses {
@@ -17,13 +17,20 @@ interface ResponsesPageClientProps {
 export default function ResponsesPageClient({ hash }: ResponsesPageClientProps) {
   const [groupedResponses, setGroupedResponses] = useState<GroupedResponses>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadResponses = async () => {
       try {
+        setError(null);
         const data = await getResponsesByHash(hash);
 
-        const rawResponses: ServerResponse[] = data?.responses || [];
+        if (!data || !data.responses) {
+           setGroupedResponses({});
+           return;
+        }
+
+        const rawResponses: ServerResponse[] = data.responses || [];
 
         // Группируем по пользователю (tg_id + username)
         const grouped: GroupedResponses = {};
@@ -41,23 +48,50 @@ export default function ResponsesPageClient({ hash }: ResponsesPageClientProps) 
         });
 
         setGroupedResponses(grouped);
-      } catch (error) {
-        console.error("Ошибка загрузки ответов:", error);
-        // Обработка ошибки, например, установка сообщения об ошибке
+      } catch (err: any) {
+        console.error("Ошибка загрузки ответов:", err);
+        setError(err.message || "Не удалось загрузить ответы");
+        setTimeout(() => {
+            if (window.location.pathname.includes('/auth')) return;
+            setLoading(false); 
+        }, 2000);
+        return; 
       } finally {
-        setLoading(false);
+        // Сбрасываем loading только если нет ошибки
+        if (!error) {
+            setLoading(false);
+        }
       }
     };
 
-    loadResponses();
+    if (hash) {
+      loadResponses();
+    }
   }, [hash]);
 
+  // 1. Загрузка или Ожидание редиректа после ошибки
   if (loading) {
     return (
       <div className="min-h-screen w-full bg-background">
-        <LoadingCat message="Загрузка ответов..." subMessage="Пожалуйста, подождите" />
+        <LoadingCat 
+          message={error ? "Проверка доступа..." : "Загрузка ответов..."} 
+          subMessage={error ? "Перенаправляем на вход" : "Пожалуйста, подождите"} 
+        />
       </div>
     );
+  }
+
+  // 2. Если ошибка осталась (редирект не сработал)
+  if (error) {
+     return (
+      <div className="min-h-screen w-full bg-background flex items-center justify-center">
+        <div className="text-center p-6">
+          <p className="text-xl font-medium text-muted-foreground mb-4">Не удалось загрузить данные</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 text-blue-500 hover:underline">Обновить страницу</button>
+        </div>
+      </div>
+     );
   }
 
   const userKeys = Object.keys(groupedResponses);

@@ -49,10 +49,8 @@ export function CreateFormBtn({ onFormCreated }: CreateFormBtnProps) {
 
   async function onSubmit(values: CreateFormType) {
     try {
-      console.log("Создаём форму:", values);
       const result = await createForm(values);
-      console.log("Форма создана:", result);
-      
+
       toast.success("Форма успешно создана!");
       form.reset();
       

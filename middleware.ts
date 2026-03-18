@@ -1,49 +1,53 @@
+// letsforms-frontend/middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 
-// Публичные пути, куда пускаем без проверки
+// Публичные пути, куда пускаем БЕЗ проверки авторизации
 const PUBLIC_ROUTES = ["/auth", "/telegram-login", "/auth/callback"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Пропускаем служебные роуты
+  // 1. Пропускаем служебные роуты и статику
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
-  // 2. Проверяем куку tg_user
+  // Получаем куку
   const tgUserRaw = request.cookies.get("tg_user")?.value;
   let isAuthorized = false;
 
   if (tgUserRaw) {
     try {
-      const user = JSON.parse(tgUserRaw);
-      // Проверяем наличие ID
-      if (user && (user.id || user.user_id)) {
+      const user = JSON.parse(decodeURIComponent(tgUserRaw)); // Часто куки приходят закодированными
+      // Проверяем наличие ID (поддерживаем разные варианты ключей)
+      if (user && (user.id || user.user_id || user.telegram_id)) {
         isAuthorized = true;
       }
     } catch (e) {
-      console.warn("[MW] Ошибка парсинга куки пользователя", e);
+      console.warn("[MW] Invalid tg_user cookie format", e);
+      // Если кука битая, считаем пользователя неавторизованным
+      isAuthorized = false;
     }
   }
 
-  // 3. Если НЕ авторизован -> РЕДИРЕКТ НА /auth
+  // 2. Если НЕ авторизован -> ЖЕСТКИЙ РЕДИРЕКТ НА /auth
   if (!isAuthorized) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth";
-    // Сохраняем полный путь (pathname + searchParams), чтобы вернуться точно туда
-    const currentPath = `${pathname}${request.nextUrl.search}`;
-    url.search = `?redirect=${encodeURIComponent(currentPath)}`;
+    const loginUrl = new URL("/auth", request.url);
+    // Сохраняем полный путь, куда хотел пользователь
+    loginUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
     
-    console.log(`[MW] ❌ Доступ запрещен. Редирект на: ${url.toString()}`);
-    return NextResponse.redirect(url);
+    // Возвращаем редирект. Next.js прервет выполнение здесь.
+    return NextResponse.redirect(loginUrl);
   }
 
-  // 4. Если авторизован и пытается зайти на /auth -> Кидаем на главную или туда, куда хотел изначально
+  // 3. Если авторизован и пытается зайти на страницу логина -> Кидаем на главную или redirect
   if (pathname === "/auth") {
     const redirectParam = request.nextUrl.searchParams.get("redirect");
     const target = redirectParam || "/";
-    console.log(`[MW] ✅ Уже авторизован на странице входа. Редирект на: ${target}`);
+    // Избегаем циклического редиректа, если target тоже auth
+    if (target === "/auth") {
+        return NextResponse.next();
+    }
     return NextResponse.redirect(new URL(target, request.url));
   }
 
@@ -51,5 +55,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Применяем ко всем путям, кроме статики и api (api часто требует своей логики)
   matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };

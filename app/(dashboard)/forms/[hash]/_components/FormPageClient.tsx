@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteForm } from "@/lib/form";
-import { LoadingCat } from "@/components/ui/loading-cat";
-import { PageError } from "@/components/ui/page-error";
+import { LoadingCat } from "@/components/ui/loading-cat"; 
 import { PublishDialog } from "@/components/PublishDialog";
 import useLoadForm from "@/hooks/useLoadForm";
 import useFormStatusActions from "@/hooks/useFormStatusActions";
@@ -66,15 +65,15 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
     );
   }
 
-  // 2. Ошибка
+  // 2. ОБРАБОТКА ОШИБКИ ИЛИ ОТСУТСТВИЯ ДАННЫХ
   if (loadError || !formData) {
     return (
-      <PageError
-        title="Не удалось загрузить форму"
-        message={loadError || "Форма не найдена."}
-        onRetry={refetch}
-        type={!formData ? "not-found" : "error"}
-      />
+      <div className="min-h-screen w-full bg-background flex items-center justify-center">
+        <LoadingCat 
+          message="Проверка доступа..." 
+          subMessage="Перенаправляем на вход" 
+        />
+      </div>
     );
   }
 
@@ -102,13 +101,11 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
             </div>
 
             <div className="w-full">
-              {/* Используем обновленный FormStatsCompact с hash */}
               <FormStatsCompact 
                 hash={hash}
                 initialVisits={formData?.visit_count}
                 initialSubmissions={formData?.response_count}
                 initialSubmissionRate={formData?.conversion_rate}
-                // bounceRate не передаем, так как его нет в formData
               />
             </div>
 

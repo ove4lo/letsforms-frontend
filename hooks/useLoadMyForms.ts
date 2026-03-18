@@ -19,7 +19,7 @@ const useLoadMyForms = (): UseLoadMyFormsReturn => {
 
   // Функция для расчета корректной статистики на основе форм
   const calculateCorrectStats = (forms: FormSummary[]): UserStatistics => {
-    console.log("🧮 ===== РАСЧЕТ СТАТИСТИКИ ВРУЧНУЮ =====");
+    console.log("🧮 РАСЧЕТ СТАТИСТИКИ ВРУЧНУЮ ");
     
     let totalVisits = 0;
     let totalResponses = 0;
@@ -60,7 +60,7 @@ const useLoadMyForms = (): UseLoadMyFormsReturn => {
   };
 
   const loadData = async () => {
-    console.log("🔄 ===== useLoadMyForms: ЗАГРУЗКА =====");
+    console.log("🔄 useLoadMyForms: ЗАГРУЗКА ");
     console.log("🔄 Время:", new Date().toISOString());
     
     if (loadingRef.current) {

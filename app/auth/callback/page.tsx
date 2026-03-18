@@ -10,16 +10,13 @@ function AuthCallbackContent() {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    console.log("🔄 Callback check attempt:", attempt + 1);
     
     const tgUserRaw = getCookie("tg_user");
     
     if (tgUserRaw) {
-      console.log("✅ Cookie found! Length:", tgUserRaw.length);
       try {
         const user = JSON.parse(tgUserRaw);
         if (user.id || user.user_id) {
-          console.log("🎉 User validated:", user.first_name || user.username);
           const redirectPath = sessionStorage.getItem("redirectAfterLogin") || "/";
           sessionStorage.removeItem("redirectAfterLogin");
 

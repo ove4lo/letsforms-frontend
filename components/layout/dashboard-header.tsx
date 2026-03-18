@@ -23,12 +23,13 @@ import {
   LayoutDashboard, 
   ChevronLeft,
   FileText,
-  Menu,
   Home,
   ArrowLeft
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+// Импортируем нашу утилиту для очистки кук, чтобы не дублировать логику
+import { clearAuthCookies } from "@/lib/cookies";
 
 interface DashboardHeaderProps {
   user: any;
@@ -45,7 +46,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     user.username?.[0]?.toUpperCase() ||
     "?";
 
-  // Логика определения типа страницы
+  // Логика определения типа страницы для навигации
   const isFormPage = pathname?.startsWith('/forms/') && pathname !== '/forms';
   const isBuilderPage = pathname?.startsWith('/builder/');
   const isResponsesPage = pathname?.includes('/responses');
@@ -58,14 +59,21 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const handleDashboard = () => router.push('/');
   
   const handleLogout = () => {
-    document.cookie = "tg_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    router.replace("/auth/");
+    // 1. Очищаем все auth-куки через централизованную функцию
+    clearAuthCookies();
+    
+    // 2. Принудительно редиректим на страницу входа
+    // Middleware проверит отсутствие кук и не пустит дальше, если пользователь попробует вернуться назад
+    router.replace("/auth");
+    
+    // 3. Опционально: можно очистить sessionStorage, если там есть чувствительные данные
+    // sessionStorage.clear(); 
   };
 
   // Мобильное меню с навигацией
   const MobileNavigation = () => (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+      {/* Триггер кнопки меню вынесен выше в JSX, здесь только контент */}
       <SheetContent side="left" className="w-[250px] sm:w-[300px]">
         <div className="flex flex-col gap-4 mt-8">
           {pathname !== '/' && (
@@ -115,36 +123,59 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   return (
     <nav className="flex justify-between items-center border-b h-14 sm:h-16 px-3 sm:px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-        {/* Мобильное меню */}
-        <MobileNavigation />
+        {/* Кнопка мобильного меню */}
+        <div className="md:hidden">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+             {/* Используем Button как триггер внутри Sheet, но так как SheetContent требует Trigger, 
+                 лучше обернуть кнопку открытия явно, если компонент SheetTrigger не используется напрямую.
+                 В твоем коде выше был SheetTrigger, но он не был подключен к кнопке. 
+                 Исправим структуру для корректной работы. */}
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <span className="sr-only">Меню</span>
+                {/* Иконка гамбургера, если нужна, или используем Menu из lucide */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[250px] sm:w-[300px]">
+               <div className="flex flex-col gap-4 mt-8">
+                {pathname !== '/' && (
+                  <>
+                    <Button variant="ghost" className="flex items-center justify-start gap-3 w-full" onClick={() => { handleBack(); setMobileMenuOpen(false); }}>
+                      <ArrowLeft className="h-4 w-4" /> Назад
+                    </Button>
+                    <Button variant="ghost" className="flex items-center justify-start gap-3 w-full" onClick={() => { handleDashboard(); setMobileMenuOpen(false); }}>
+                      <Home className="h-4 w-4" /> На главную
+                    </Button>
+                  </>
+                )}
+                {(isFormPage || isBuilderPage) && formHash && (
+                  <Button variant="ghost" className="flex items-center justify-start gap-3 w-full" asChild>
+                    <Link href={`/forms/${formHash}`} onClick={() => setMobileMenuOpen(false)}>
+                      <FileText className="h-4 w-4" /> {isBuilderPage ? 'К форме' : 'Форма'}
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
 
-        {/* Логотип - адаптивный размер */}
+        {/* Логотип */}
         <div className="flex-shrink-0">
           <Logo />
         </div>
 
-        {/* Десктопная навигация - скрываем на мобилках */}
+        {/* Десктопная навигация */}
         <div className="hidden md:flex items-center gap-2 ml-4 min-w-0">
           {pathname !== '/' && (
             <>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleBack}
-                className="flex items-center gap-1 flex-shrink-0"
-                title="Назад"
-              >
+              <Button variant="ghost" size="sm" onClick={handleBack} className="flex items-center gap-1 flex-shrink-0" title="Назад">
                 <ChevronLeft className="h-4 w-4" />
                 <span className="hidden lg:inline">Назад</span>
               </Button>
 
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleDashboard}
-                className="flex items-center gap-1 flex-shrink-0"
-                title="На главную"
-              >
+              <Button variant="ghost" size="sm" onClick={handleDashboard} className="flex items-center gap-1 flex-shrink-0" title="Дашборд">
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden lg:inline">Дашборд</span>
               </Button>
@@ -157,9 +188,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               <Button variant="ghost" size="sm" asChild className="flex-shrink-0">
                 <Link href={`/forms/${formHash}`} className="flex items-center gap-1">
                   <FileText className="h-4 w-4" />
-                  <span className="hidden lg:inline">
-                    {isBuilderPage ? 'К странице формы' : 'Страница формы'}
-                  </span>
+                  <span className="hidden lg:inline">{isBuilderPage ? 'Редактор' : 'Форма'}</span>
                 </Link>
               </Button>
             </>

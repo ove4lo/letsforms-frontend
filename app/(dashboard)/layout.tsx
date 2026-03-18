@@ -1,42 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { LoadingCat } from "@/components/ui/loading-cat";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { LoadingCat } from "@/components/ui/loading-cat";
 import { getCookie } from "@/lib/cookies";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const tgUserRaw = getCookie("tg_user");
     
-    if (!tgUserRaw) {
-      sessionStorage.setItem("redirectAfterLogin", pathname);
-      router.replace("/auth");
-      return;
-    }
-
-    try {
-      // Парсим пользователя
-      const parsed = JSON.parse(tgUserRaw);
-      if (parsed?.id || parsed?.user_id) {
+    if (tgUserRaw) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(tgUserRaw));
         setUser(parsed);
-      } else {
-        throw new Error("Invalid user data");
+      } catch (e) {
+        console.error("Client layout: Failed to parse user", e);
       }
-    } catch {
-      // Если данные кривые - просто редирект
-      router.replace("/auth");
     }
-  }, [router, pathname]);
+    setLoading(false);
+  }, []);
 
-  // Пока нет пользователя - показываем котика
+  if (loading) {
+    return <LoadingCat message="Загрузка..." subMessage="Проверяем доступ" />;
+  }
+
   if (!user) {
-    return <LoadingCat message="Загрузка..." subMessage="Секундочку" />;
+     return (
+       <div className="flex items-center justify-center h-screen">
+         <p className="text-red-500">Ошибка сессии. Пожалуйста, войдите снова.</p>
+       </div>
+     );
   }
 
   return (

@@ -11,7 +11,6 @@ export function TelegramLoginButton() {
   useEffect(() => {
     // Защита от множественных инициализаций
     if (initializedRef.current) {
-      console.log("Telegram widget уже инициализирован, пропускаем...");
       return;
     }
 
@@ -23,10 +22,6 @@ export function TelegramLoginButton() {
 
     // Сохраняем ссылку на контейнер
     containerRef.current = container;
-
-    console.log("Инициализация Telegram Login Widget");
-    console.log("Имя бота:", BOT_NAME_BASE);
-    console.log("data-auth-url:", "/telegram-login");
 
     // Очищаем контейнер перед добавлением нового скрипта
     container.innerHTML = "";
@@ -40,7 +35,6 @@ export function TelegramLoginButton() {
     script.async = true;
 
     script.onload = () => {
-      console.log("Telegram widget скрипт загружен");
       initializedRef.current = true;
     };
     
@@ -52,13 +46,12 @@ export function TelegramLoginButton() {
     container.appendChild(script);
 
     return () => {
-      console.log("Очистка Telegram widget");
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
       initializedRef.current = false;
     };
-  }, []); // Пустой массив зависимостей - выполняется только при монтировании
+  }, []);
 
   return <div id="telegram-login" className="flex justify-center min-h-[80px]" />;
 }

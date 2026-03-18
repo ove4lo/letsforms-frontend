@@ -24,10 +24,15 @@ const getHeaders = (): Record<string, string> => {
   return headers;
 };
 
-// Универсальная обработка 401 ошибки
 const handleUnauthorized = () => {
   if (typeof window !== 'undefined') {
     clearAuthCookies();
+    
+    // Сохраняем текущий путь, чтобы вернуться после логина
+    const currentPath = window.location.pathname + window.location.search;
+    sessionStorage.setItem("redirectAfterLogin", currentPath);
+    
+    // Перенаправляем на страницу входа
     window.location.href = '/auth';
   }
   throw new Error("Unauthorized");
@@ -47,73 +52,44 @@ const mapClientTypeToServer = (type: string): string => {
 
 export async function getMyForms(): Promise<GetMyFormsResponse> {
   const telegramId = getTelegramId();
-  console.log("🔍 getMyForms: telegramId:", telegramId);
   
   if (!telegramId) {
-    console.log("🔍 getMyForms: нет telegramId, возвращаем пустой результат");
     return { results: [], user_statistics: undefined };
   }
 
   try {
     const url = `${API_BASE}/forms/by_tg_id/?tg_id=${telegramId}`;
-    console.log("🔍 getMyForms: запрос к:", url);
-    console.log("🔍 getMyForms: заголовки:", getHeaders());
     
     const res = await fetch(url, {
       headers: getHeaders(),
       cache: 'no-store',
     });
 
-    console.log("🔍 getMyForms: статус ответа:", res.status, res.statusText);
-
     if (res.status === 401) { 
-      console.log("🔍 getMyForms: получен 401");
       handleUnauthorized(); 
       return { results: [], user_statistics: undefined }; 
     }
     
     if (!res.ok) {
-      console.log("🔍 getMyForms: ошибка ответа:", res.status);
       return { results: [], user_statistics: undefined };
     }
 
     const data = await res.json();
-    console.log("🔍 getMyForms: ПОЛНЫЙ ОТВЕТ ОТ СЕРВЕРА:", JSON.stringify(data, null, 2));
     
     // Детальный анализ статистики
     if (data.user_statistics) {
-      console.log("🔍 getMyForms: АНАЛИЗ СТАТИСТИКИ ПОЛЬЗОВАТЕЛЯ:");
-      console.log("  - total_visits:", data.user_statistics.total_visits);
-      console.log("  - total_responses:", data.user_statistics.total_responses);
-      console.log("  - overall_conversion_rate:", data.user_statistics.overall_conversion_rate);
-      console.log("  - overall_bounce_rate:", data.user_statistics.overall_bounce_rate);
       
       // Проверяем каждую форму
       if (data.results) {
-        console.log("🔍 getMyForms: АНАЛИЗ КАЖДОЙ ФОРМЫ:");
         let totalVisitsFromForms = 0;
         let totalResponsesFromForms = 0;
         
         data.results.forEach((form: any, index: number) => {
-          console.log(`  Форма ${index + 1} [${form.hash}]:`, {
-            title: form.title,
-            status: form.status,
-            visit_count: form.visit_count,
-            response_count: form.response_count,
-            conversion_rate: form.conversion_rate
-          });
           
           totalVisitsFromForms += form.visit_count || 0;
           totalResponsesFromForms += form.response_count || 0;
         });
         
-        console.log("🔍 getMyForms: СУММА ПО ФОРМАМ:");
-        console.log("  - Всего посещений по формам:", totalVisitsFromForms);
-        console.log("  - Всего ответов по формам:", totalResponsesFromForms);
-        console.log("  - В статистике пользователя посещения:", data.user_statistics.total_visits);
-        console.log("  - В статистике пользователя ответы:", data.user_statistics.total_responses);
-        console.log("  - Совпадают посещения:", totalVisitsFromForms === data.user_statistics.total_visits ? "✅" : "❌");
-        console.log("  - Совпадают ответы:", totalResponsesFromForms === data.user_statistics.total_responses ? "✅" : "❌");
       }
     }
 
@@ -143,13 +119,8 @@ export async function getFormByHash(hash: string): Promise<AdminServerForm | nul
 }
 
 export async function submitFormResponses(hash: string, answers: Record<string, any>): Promise<any> {
-  console.log("🎯 НАЧАЛО ОТПРАВКИ ФОРМЫ");
-  console.log("📋 Hash формы:", hash);
-  console.log("📋 Количество ответов:", Object.keys(answers).length);
-  console.log("📋 Ответы (сырые):", answers);
-  
+
   const tgUserJson = getCookie("tg_user");
-  console.log("🍪 tg_user cookie:", tgUserJson ? "есть" : "нет");
   
   if (!tgUserJson) throw new Error("Пользователь не авторизован");
 
@@ -157,9 +128,7 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
   
   try {
     const user = JSON.parse(decodeURIComponent(tgUserJson));
-    console.log("👤 Распарсенный пользователь:", user);
     tgId = user.id || user.telegram_id;
-    console.log("👤 Telegram ID:", tgId);
   } catch (e) {
     console.error("❌ Ошибка парсинга пользователя:", e);
     throw new Error("Ошибка парсинга пользователя");
@@ -169,20 +138,12 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
 
   // Получаем токен
   const accessToken = getCookie("access_token");
-  console.log("🔑 Токен доступа:", accessToken ? "есть" : "нет");
   
   if (!accessToken) {
     throw new Error("Токен авторизации не найден");
   }
   
-  console.log("📦 Преобразование ответов в формат сервера...");
-  
   const responses = Object.entries(answers).map(([qId, ans]) => {
-    console.log(`  Вопрос ${qId}:`, {
-      исходный_ответ: ans,
-      тип: typeof ans,
-      преобразованный: ans ?? null
-    });
     
     return {
       question_id: Number(qId),
@@ -190,23 +151,14 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
     };
   });
 
-  console.log("📦 Итоговый payload для отправки:", {
-    tg_id: tgId,
-    responses_count: responses.length,
-    responses: responses
-  });
-
   const url = `${API_BASE}/forms/${hash}/submit/`;
-  console.log("📤 URL:", url);
 
   const requestBody = {
     tg_id: tgId,
     responses: responses,
   };
-  console.log("📤 Тело запроса:", JSON.stringify(requestBody, null, 2));
 
   try {
-    console.log("⏳ Отправка запроса...");
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -216,20 +168,14 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
       body: JSON.stringify(requestBody),
     });
 
-    console.log("📥 Статус ответа:", res.status, res.statusText);
-
     const responseText = await res.text();
-    console.log("📥 Тело ответа (сырое):", responseText);
 
     let data;
     try {
       data = JSON.parse(responseText);
-      console.log("📥 Распарсенный ответ:", data);
-      
+
       if (data.success) {
-        console.log("✅ Успех:", data.message);
-        console.log("📊 Создано ответов:", data.responses_created);
-        console.log("👤 Пользователь:", data.username);
+
       }
     } catch (e) {
       console.error("❌ Ошибка парсинга ответа:", e);
@@ -243,20 +189,16 @@ export async function submitFormResponses(hash: string, answers: Record<string, 
       });
       
       if (res.status === 401) {
-        console.log("🚫 Получен 401, вызываем handleUnauthorized");
         handleUnauthorized();
       }
       
       throw new Error(`Ошибка отправки: ${res.status} ${responseText}`);
     }
 
-    console.log("✅ Ответы успешно отправлены!");
-    console.log("🎯 КОНЕЦ ОТПРАВКИ ФОРМЫ\n");
     return data;
 
   } catch (error) {
     console.error("❌ Ошибка при отправке формы:", error);
-    console.log("🎯 ОШИБКА ОТПРАВКИ ФОРМЫ \n");
     throw error;
   }
 }
@@ -447,8 +389,6 @@ export async function saveForm(
       }
     });
 
-  console.log("📤 Отправляем вопросы на сервер:", questions);
-
   // --- 4. ЗАМЕНА ВОПРОСОВ НА СЕРВЕРЕ ---
   const qRes = await fetch(`${API_BASE}/forms/${hash}/replace_questions/`, {
     method: "PUT",
@@ -464,8 +404,7 @@ export async function saveForm(
     const text = await qRes.text();
     throw new Error(`Ошибка сохранения вопросов: ${qRes.status} ${text}`);
   }
-
-  console.log("✅ Форма успешно сохранена!");
+  
   return await qRes.json();
 }
 

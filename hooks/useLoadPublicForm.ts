@@ -48,7 +48,6 @@ const useLoadPublicForm = (hash: string): UseLoadPublicFormReturn => {
 
     // Защита от множественных вызовов 
     if (loadingRef.current) {
-      console.log('Загрузка уже выполняется, пропускаем...');
       return;
     }
     
@@ -60,7 +59,6 @@ const useLoadPublicForm = (hash: string): UseLoadPublicFormReturn => {
     }
     
     try {
-      console.log(`Загружаем форму ${hash}...`);
       const data = await getFormByHash(hash);
       
       if (mountedRef.current) {
@@ -115,7 +113,6 @@ const useLoadPublicForm = (hash: string): UseLoadPublicFormReturn => {
     loadData();
     
     return () => {
-      console.log('Размонтирование useLoadPublicForm');
       mountedRef.current = false;
     };
   }, [hash]); // Зависимость только от hash
