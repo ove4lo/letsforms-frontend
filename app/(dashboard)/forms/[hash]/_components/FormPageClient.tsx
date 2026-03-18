@@ -28,14 +28,6 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
 
   const currentStatus = localStatus ?? formData?.status ?? "draft";
 
-  // Данные для статистики
-  const statsData = {
-    visits: formData?.visit_count ?? 0,
-    submissions: formData?.response_count ?? 0,
-    submissionRate: Number((formData?.conversion_rate ?? 0).toFixed(1)),
-    bounceRate: 0,
-  };
-
   // Обработчики
   const handleDelete = async () => {
     if (!confirm("Вы уверены, что хотите удалить форму?")) return;
@@ -110,12 +102,13 @@ export default function FormPageClient({ hash }: FormPageClientProps) {
             </div>
 
             <div className="w-full">
-              <FormStatsCompact
-                visits={statsData.visits}
-                submissions={statsData.submissions}
-                submissionRate={statsData.submissionRate}
-                bounceRate={statsData.bounceRate}
-                loading={false}
+              {/* Используем обновленный FormStatsCompact с hash */}
+              <FormStatsCompact 
+                hash={hash}
+                initialVisits={formData?.visit_count}
+                initialSubmissions={formData?.response_count}
+                initialSubmissionRate={formData?.conversion_rate}
+                // bounceRate не передаем, так как его нет в formData
               />
             </div>
 

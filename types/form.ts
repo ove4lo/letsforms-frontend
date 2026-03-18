@@ -94,3 +94,31 @@ export interface UserStatistics {
   overall_conversion_rate: number;
   overall_bounce_rate: number;
 }
+
+// Интерфейс для детальной статистики одной формы
+export interface FormDetailedStats {
+  success: boolean;
+  form_hash: string;
+  form_title: string;
+  basic_stats: {
+    visit_count: number;
+    response_count: number;
+    conversion_rate: number;
+    bounce_rate: number;
+    unique_visitors: number;
+    unique_respondents: number;
+  };
+  visits_by_day: Array<{
+    day: string;
+    count: number;
+  }>;
+  responses_by_day: Array<{
+    day: string;
+    count: number;
+  }>;
+  question_stats: Array<{
+    question_id: number;
+    question_text: string;
+    answer_count: number;
+  }>;
+}

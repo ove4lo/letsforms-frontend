@@ -8,13 +8,14 @@ import { Edit, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useRef, useEffect } from "react";
 import { PublishDialog } from "@/components/PublishDialog";
-import { updateFormStatus } from "@/lib/form";
+import { updateFormStatus, getFormDetailedStats } from "@/lib/form";
+import { FormDetailedStats } from "@/types/form";
 
 type Props = {
   hash: string;
   title: string;
   description?: string | null;
-  visit_count?: number;
+  visit_count?: number; // начальные значения из списка
   response_count?: number;
   conversion_rate?: number;
   questions_count?: number;
@@ -26,8 +27,8 @@ export function FormCard({
   hash,
   title,
   description,
-  visit_count = 0,
-  response_count = 0,
+  visit_count: initialVisits = 0,
+  response_count: initialResponses = 0,
   questions_count = 0,
   created_at,
   status: initialStatus,
@@ -38,6 +39,59 @@ export function FormCard({
   const [isUpdating, setIsUpdating] = useState(false);
   const [localStatus, setLocalStatus] = useState(initialStatus);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Состояние для детальной статистики
+  const [stats, setStats] = useState({
+    visits: initialVisits,
+    responses: initialResponses
+  });
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  // Загружаем детальную статистику при монтировании
+  useEffect(() => {
+    console.log(`📊 FormCard [${hash}]: загрузка детальной статистики...`);
+    
+    const loadDetailedStats = async () => {
+      try {
+        setLoadingStats(true);
+        const detailedStats = await getFormDetailedStats(hash);
+        
+        if (detailedStats?.basic_stats) {
+          console.log(`📊 FormCard [${hash}]: получены детальные данные:`, {
+            visits: detailedStats.basic_stats.visit_count,
+            responses: detailedStats.basic_stats.response_count,
+            unique_visitors: detailedStats.basic_stats.unique_visitors,
+            unique_respondents: detailedStats.basic_stats.unique_respondents
+          });
+          
+          setStats({
+            visits: detailedStats.basic_stats.visit_count,
+            responses: detailedStats.basic_stats.response_count
+          });
+          
+          // Сравниваем с начальными значениями
+          console.log(`📊 FormCard [${hash}]: сравнение:`, {
+            посещения: {
+              было: initialVisits,
+              стало: detailedStats.basic_stats.visit_count,
+              изменилось: initialVisits !== detailedStats.basic_stats.visit_count ? "✅" : "❌"
+            },
+            ответы: {
+              было: initialResponses,
+              стало: detailedStats.basic_stats.response_count,
+              изменилось: initialResponses !== detailedStats.basic_stats.response_count ? "✅" : "❌"
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`📊 FormCard [${hash}]: ошибка загрузки статистики:`, error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    
+    loadDetailedStats();
+  }, [hash, initialVisits, initialResponses]);
 
   const date = new Date(created_at);
 
@@ -148,13 +202,21 @@ export function FormCard({
           <div>
             <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Посещений</p>
             <p className="text-sm font-bold">
-              {visit_count?.toLocaleString("ru-RU") || 0}
+              {loadingStats ? (
+                <span className="text-muted-foreground/50">...</span>
+              ) : (
+                stats.visits?.toLocaleString("ru-RU") || 0
+              )}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Ответов</p>
             <p className="text-sm font-bold">
-              {response_count?.toLocaleString("ru-RU") || 0}
+              {loadingStats ? (
+                <span className="text-muted-foreground/50">...</span>
+              ) : (
+                stats.responses?.toLocaleString("ru-RU") || 0
+              )}
             </p>
           </div>
         </div>
