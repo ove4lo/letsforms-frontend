@@ -1,26 +1,16 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/providers/ThemeProvider"; // Проверь путь к своему провайдеру темы
+import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { LoadingCat } from "@/components/ui/loading-cat";
+import { RootAuthWrapper } from "@/components/layout/RootAuthWrapper"; // Создадим этот компонент ниже
 
-const inter = Inter({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-inter",
-  display: "swap",
-});
+const inter = Inter({ subsets: ["cyrillic", "latin"] });
 
 export const metadata: Metadata = {
-  title: {
-    default: "LetsForms",
-    template: "%s | LetsForms",
-  },
-  description: "Создавайте опросы, формы и анкеты прямо в Telegram",
-  icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
-  },
+  title: "LetsForms",
+  description: "Конструктор форм",
 };
 
 export default function RootLayout({
@@ -30,15 +20,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={inter.className}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster richColors position="top-center" />
+          <RootAuthWrapper>
+            {children}
+          </RootAuthWrapper>
         </ThemeProvider>
       </body>
     </html>

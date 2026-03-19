@@ -11,24 +11,19 @@ interface TrashZoneProps {
 
 export function TrashZone({ isDragging, className }: TrashZoneProps) {
   const [isMobile, setIsMobile] = useState(false);
+
   const { setNodeRef, isOver } = useDroppable({
     id: "trash-zone",
-    data: { 
-      isTrashZone: true
-    }
+    data: { isTrashZone: true },
   });
 
-  // Определяем мобильное устройство
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Не показываем на мобильных устройствах
   if (!isDragging || isMobile) return null;
 
   return (
@@ -36,24 +31,31 @@ export function TrashZone({ isDragging, className }: TrashZoneProps) {
       ref={setNodeRef}
       className={cn(
         "fixed bottom-0 left-0 right-0 z-[100]",
-        "h-28",
+        "h-20", 
         "pointer-events-auto",
-        "transition-all duration-200",
-        isOver 
-          ? "bg-gradient-to-t from-red-600/90 via-red-500/60 to-transparent backdrop-blur-sm" 
-          : "bg-gradient-to-t from-red-600/30 via-red-500/10 to-transparent",
         className
       )}
     >
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-        <div className={cn(
-          "w-12 h-12 rounded-full",
-          "flex items-center justify-center",
-          "border-2 border-red-400/50 bg-red-500/20",
-          "transition-transform duration-200",
-          isOver && "scale-110"
-        )}>
-          <Trash2 className="h-5 w-5 text-red-400" />
+      {/* Видимая плашка по центру */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2">
+        <div
+          className={cn(
+            "flex items-center gap-2 px-5 py-2.5 rounded-full",
+            "border text-sm font-medium",
+            "transition-all duration-200 ease-out",
+            "shadow-lg",
+            isOver
+              ? "bg-red-500 border-red-400 text-white scale-110 shadow-red-500/40"
+              : "bg-background/90 border-red-400/60 text-red-400 backdrop-blur-sm scale-100"
+          )}
+        >
+          <Trash2
+            className={cn(
+              "h-4 w-4 transition-transform duration-200",
+              isOver && "scale-110"
+            )}
+          />
+          <span>{isOver ? "Отпустите для удаления" : "Удалить"}</span>
         </div>
       </div>
     </div>

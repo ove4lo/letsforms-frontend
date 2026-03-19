@@ -53,16 +53,6 @@ export function LoadingCat({
           {subMessage}
         </p>
       </div>
-      
-      <style jsx>{`
-        @keyframes blink {
-          0%, 100% { transform: scaleY(1); }
-          50% { transform: scaleY(0.1); }
-        }
-        .animate-blink {
-          animation: blink 4s infinite;
-        }
-      `}</style>
     </div>
   );
 }

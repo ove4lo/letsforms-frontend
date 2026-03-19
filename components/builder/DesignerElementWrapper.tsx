@@ -1,7 +1,6 @@
 "use client";
 
 import { useSortable } from "@dnd-kit/sortable";
-import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { FormElements } from "./elements/FormElements";
 import { FormElementInstance } from "./types";
@@ -20,83 +19,47 @@ export function DesignerElementWrapper({ element, onRemove, onSelect, isSelected
   const { id, type } = element;
   const DesignerElement = FormElements[type].designerComponent;
 
-  // ВЕРХНЯЯ ЗОНА (для вставки ПЕРЕД элементом)
-  const topDrop = useDroppable({
-    id: `top-${id}`,
-    data: {
-      isDesignerElement: true,
-      elementId: id,
-      isTopHalf: true, 
-    },
-  });
-
-  // НИЖНЯЯ ЗОНА (для вставки ПОСЛЕ элемента)
-  const bottomDrop = useDroppable({
-    id: `bottom-${id}`,
-    data: {
-      isDesignerElement: true,
-      elementId: id,
-      isTopHalf: false,
-    },
-  });
-
-  const sortable = useSortable({
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id,
-    data: {
-      isDesignerElement: true,
-      type,
-      elementId: id,
-    },
+    data: { type, isDesignerElement: true },
   });
 
   const style = {
-    transform: CSS.Transform.toString(sortable.transform),
-    transition: sortable.transition,
-  };
-
-  // Отдельный обработчик для клика по элементу (не по иконке захвата)
-  const handleElementClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onSelect();
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
-    <div ref={sortable.setNodeRef} style={style} className="relative group mb-4 w-full">
-      
-      {/* ВЕРХНЯЯ ЛИНИЯ-ИНДИКАТОР */}
-      <div
-        ref={topDrop.setNodeRef}
-        className={cn(
-          "absolute -top-3 left-0 right-0 h-6 z-20 flex items-center justify-center transition-all cursor-pointer",
-          topDrop.isOver ? "opacity-100" : "opacity-0 group-hover:opacity-40"
-        )}
-      >
-        <div className={cn(
-          "w-full h-1 rounded-full transition-colors shadow-sm",
-          topDrop.isOver ? "bg-blue-500 scale-105" : "bg-blue-300 dark:bg-blue-700"
-        )} />
-      </div>
-
-      {/* САМ ЭЛЕМЕНТ */}
+    <div ref={setNodeRef} style={style} className="relative group mb-2">
       <div
         className={cn(
-          "relative p-6 bg-card rounded-xl border-2 transition-all shadow-sm hover:shadow-md w-full",
+          "relative p-6 bg-card rounded-xl border-2 transition-all shadow-sm w-full",
           isSelected 
-            ? "border-blue-500 ring-2 ring-blue-500/20" 
-            : "border-transparent hover:border-muted"
+            ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/50 dark:bg-blue-950/20" 
+            : "border-transparent hover:border-muted",
+          isDragging && "opacity-30 border-dashed scale-[0.98] bg-muted/50"
         )}
       >
-        {/* Иконка захвата - ТОЛЬКО для drag & drop */}
+        {/* Ручка для перетаскивания */}
         <div
-          className="absolute top-2 left-2 text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
-          {...sortable.attributes}
-          {...sortable.listeners}
+          className="absolute top-3 left-3 text-muted-foreground cursor-grab active:cursor-grabbing touch-none z-30 p-1 rounded hover:bg-muted/50"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="h-5 w-5" />
         </div>
 
-        {/* Контент элемента - кликабельный для выбора */}
-        <div onClick={handleElementClick} className="cursor-pointer">
+        {/* Контент (клик для выбора) */}
+        <div onClick={(e) => { e.stopPropagation(); onSelect(); }} className="cursor-pointer select-none pl-8">
           <DesignerElement elementInstance={element} />
         </div>
 
@@ -104,7 +67,7 @@ export function DesignerElementWrapper({ element, onRemove, onSelect, isSelected
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 text-muted-foreground hover:bg-red-100 hover:text-red-600 transition-all"
+          className="absolute top-3 right-3 text-muted-foreground hover:bg-red-100 hover:text-red-600 transition-all z-30"
           onClick={(e) => {
             e.stopPropagation();
             onRemove(id);
@@ -112,20 +75,6 @@ export function DesignerElementWrapper({ element, onRemove, onSelect, isSelected
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-      </div>
-
-      {/* НИЖНЯЯ ЛИНИЯ-ИНДИКАТОР */}
-      <div
-        ref={bottomDrop.setNodeRef}
-        className={cn(
-          "absolute -bottom-3 left-0 right-0 h-6 z-20 flex items-center justify-center transition-all cursor-pointer",
-          bottomDrop.isOver ? "opacity-100" : "opacity-0 group-hover:opacity-40"
-        )}
-      >
-        <div className={cn(
-          "w-full h-1 rounded-full transition-colors shadow-sm",
-          bottomDrop.isOver ? "bg-blue-500 scale-105" : "bg-blue-300 dark:bg-blue-700"
-        )} />
       </div>
     </div>
   );
