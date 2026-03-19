@@ -43,7 +43,7 @@ function AuthCallbackContent() {
     }
   }, [attempt, router]);
 
-  return <LoadingCat message="Входим..." subMessage={`Попытка ${attempt + 1}/10`} />;
+  return <LoadingCat message="Входим..." />;
 }
 
 export default function AuthCallback() {

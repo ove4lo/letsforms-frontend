@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
-// Импортируем нашу утилиту для очистки кук, чтобы не дублировать логику
 import { clearAuthCookies } from "@/lib/cookies";
 
 interface DashboardHeaderProps {
@@ -63,11 +62,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
     clearAuthCookies();
     
     // 2. Принудительно редиректим на страницу входа
-    // Middleware проверит отсутствие кук и не пустит дальше, если пользователь попробует вернуться назад
     router.replace("/auth");
-    
-    // 3. Опционально: можно очистить sessionStorage, если там есть чувствительные данные
-    // sessionStorage.clear(); 
   };
 
   // Мобильное меню с навигацией
@@ -76,30 +71,47 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       {/* Триггер кнопки меню вынесен выше в JSX, здесь только контент */}
       <SheetContent side="left" className="w-[250px] sm:w-[300px]">
         <div className="flex flex-col gap-4 mt-8">
-          {pathname !== '/' && (
-            <>
+        {pathname !== '/' && (
+          <div className="flex items-center gap-1">
               <Button 
                 variant="ghost" 
-                className="flex items-center justify-start gap-3 w-full"
-                onClick={() => {
-                  handleBack();
-                  setMobileMenuOpen(false);
-                }}
+                size="sm" 
+                onClick={handleBack} 
+                className="flex items-center gap-1 h-8 px-2"
+                title="Назад"
               >
-                <ArrowLeft className="h-4 w-4" />
-                Назад
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Назад</span>
               </Button>
 
               <Button 
                 variant="ghost" 
-                className="flex items-center justify-start gap-3 w-full"
-                onClick={() => {
-                  handleDashboard();
-                  setMobileMenuOpen(false);
-                }}
+                size="sm" 
+                onClick={handleDashboard} 
+                className="flex items-center gap-1 h-8 px-2"
+                title="Дашборд"
               >
-                <Home className="h-4 w-4" />
-                На главную
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Дашборд</span>
+              </Button>
+            </div>
+          )}
+
+          {(isFormPage || isBuilderPage) && formHash && (
+            <>
+              <span className="text-muted-foreground mx-1 hidden sm:inline">/</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                asChild 
+                className="h-8 px-2"
+              >
+                <Link href={`/forms/${formHash}`} className="flex items-center gap-1">
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isBuilderPage ? 'Редактор' : isResponsesPage ? 'Ответы' : 'Форма'}
+                  </span>
+                </Link>
               </Button>
             </>
           )}
@@ -126,16 +138,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         {/* Кнопка мобильного меню */}
         <div className="md:hidden">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-             {/* Используем Button как триггер внутри Sheet, но так как SheetContent требует Trigger, 
-                 лучше обернуть кнопку открытия явно, если компонент SheetTrigger не используется напрямую.
-                 В твоем коде выше был SheetTrigger, но он не был подключен к кнопке. 
-                 Исправим структуру для корректной работы. */}
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <span className="sr-only">Меню</span>
-                {/* Иконка гамбургера, если нужна, или используем Menu из lucide */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-              </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[250px] sm:w-[300px]">
                <div className="flex flex-col gap-4 mt-8">
